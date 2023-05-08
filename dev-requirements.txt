@@ -44,7 +44,9 @@ bleach==6.0.0
 build==0.10.0
     # via pip-tools
 certifi==2023.5.7
-    # via requests
+    # via
+    #   -c requirements.txt
+    #   requests
 cffi==1.15.1
     # via argon2-cffi-bindings
 cfgv==3.3.1
@@ -85,7 +87,7 @@ idna==3.4
     #   anyio
     #   jsonschema
     #   requests
-ipykernel==6.22.0
+ipykernel==6.23.0
     # via
     #   nbclassic
     #   notebook
@@ -188,7 +190,7 @@ nbclassic==1.0.0
     #   notebook
 nbclient==0.7.4
     # via nbconvert
-nbconvert==7.3.1
+nbconvert==7.4.0
     # via
     #   jupyter-server
     #   nbclassic
@@ -285,7 +287,9 @@ pyzmq==25.0.2
     #   nbclassic
     #   notebook
 requests==2.30.0
-    # via jupyterlab-server
+    # via
+    #   -c requirements.txt
+    #   jupyterlab-server
 rfc3339-validator==0.1.4
     # via
     #   jsonschema
@@ -348,7 +352,9 @@ traitlets==5.9.0
 uri-template==1.2.0
     # via jsonschema
 urllib3==2.0.2
-    # via requests
+    # via
+    #   -c requirements.txt
+    #   requests
 virtualenv==20.23.0
     # via pre-commit
 wcwidth==0.2.6
@@ -360,7 +366,9 @@ webencodings==0.5.1
     #   bleach
     #   tinycss2
 websocket-client==1.5.1
-    # via jupyter-server
+    # via
+    #   -c requirements.txt
+    #   jupyter-server
 wheel==0.40.0
     # via pip-tools
 wrapt==1.15.0
