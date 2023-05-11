@@ -22,7 +22,10 @@ async def disconnect():
 
 
 async def main():
-    await sio.connect("http://127.0.0.1:5000")
+    await sio.connect(
+        "ws://localhost:8000/",
+        transports=["websocket"],
+    )
     await sio.wait()
 
 
