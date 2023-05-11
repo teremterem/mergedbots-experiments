@@ -1,23 +1,30 @@
+import asyncio
+
 import socketio
 
-sio = socketio.Client()
+sio = socketio.AsyncClient()
 
 
 @sio.event
-def connect():
+async def connect():
     print("Connected to server")
-    sio.emit("join_room", {"room": "example_room"})
+    await sio.emit("join_room", {"room": "example_room"})
 
 
 @sio.event
-def room_message(data):
+async def room_message(data):
     print("Received message:", data)
 
 
 @sio.event
-def disconnect():
+async def disconnect():
     print("Disconnected from server")
 
 
+async def main():
+    await sio.connect("http://127.0.0.1:5000")
+    await sio.wait()
+
+
 if __name__ == "__main__":
-    sio.connect("http://127.0.0.1:5000")
+    asyncio.run(main())
