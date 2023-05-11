@@ -20,4 +20,4 @@ def disconnect():
 
 
 if __name__ == "__main__":
-    sio.connect("http://localhost:5000")
+    sio.connect("http://127.0.0.1:5000")
