@@ -8,6 +8,8 @@ aiohttp==3.8.4
     # via discord-py
 aiosignal==1.3.1
     # via aiohttp
+anyio==3.6.2
+    # via httpcore
 async-timeout==4.0.2
     # via aiohttp
 attrs==23.1.0
@@ -15,7 +17,10 @@ attrs==23.1.0
 bidict==0.22.1
     # via python-socketio
 certifi==2023.5.7
-    # via requests
+    # via
+    #   httpcore
+    #   httpx
+    #   requests
 charset-normalizer==3.1.0
     # via
     #   aiohttp
@@ -26,8 +31,16 @@ frozenlist==1.3.3
     # via
     #   aiohttp
     #   aiosignal
+h11==0.14.0
+    # via httpcore
+httpcore==0.17.0
+    # via httpx
+httpx==0.24.0
+    # via -r requirements.in
 idna==3.4
     # via
+    #   anyio
+    #   httpx
     #   requests
     #   yarl
 multidict==6.0.4
@@ -42,6 +55,11 @@ python-socketio[client]==5.8.0
     # via -r requirements.in
 requests==2.30.0
     # via python-socketio
+sniffio==1.3.0
+    # via
+    #   anyio
+    #   httpcore
+    #   httpx
 urllib3==2.0.2
     # via requests
 websocket-client==1.5.1
