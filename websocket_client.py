@@ -25,6 +25,7 @@ async def main():
     await sio.connect(
         "ws://localhost:8000/",
         transports=["websocket"],
+        headers={"X-Chat-Merger-Bot-Token": "replace_with_real_token"},  # TODO replace with real token
     )
     await sio.wait()
 
