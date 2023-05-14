@@ -1,10 +1,10 @@
-"""Pydantic models."""
+"""Pydantic models of the MergeBots library."""
 # pylint: disable=no-name-in-module
 from pydantic import BaseModel
 
 
-class Bot(BaseModel):
-    """Bot definition."""
+class MergedBot(BaseModel):
+    """A bot that can interact with other bots."""
 
     name: str
     description: str

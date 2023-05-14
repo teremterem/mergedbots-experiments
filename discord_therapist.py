@@ -1,10 +1,12 @@
 """A simple Discord bot that reverses messages."""
-import asyncio
 import os
 
 import discord
 from discord import Message
 from dotenv import load_dotenv
+from langchain.schema import ChatMessage
+
+from mergebots import fulfill_message
 
 load_dotenv()
 
@@ -27,8 +29,8 @@ async def on_message(message: Message) -> None:
         return
 
     async with message.channel.typing():
-        await asyncio.sleep(3)
-        await message.channel.send("sup?")
+        async for response in fulfill_message(ChatMessage(role="user", content=message.content)):
+            await message.channel.send(response.content)
 
 
 if __name__ == "__main__":

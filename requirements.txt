@@ -45,6 +45,7 @@ langchain==0.0.168
     # via
     #   -r requirements.in
     #   llama-index
+    #   promptlayer
 llama-index==0.6.6
     # via -r requirements.in
 lmql==0.0.6.3
@@ -74,12 +75,15 @@ openai==0.27.6
     # via
     #   llama-index
     #   lmql
+    #   promptlayer
 openapi-schema-pydantic==1.2.4
     # via langchain
 packaging==23.1
     # via marshmallow
 pandas==2.0.1
     # via llama-index
+promptlayer==0.1.81
+    # via -r requirements.in
 pydantic==1.10.7
     # via
     #   -r requirements.in
@@ -102,6 +106,7 @@ requests==2.29.0
     #   langchain
     #   llama-index
     #   openai
+    #   promptlayer
     #   tiktoken
 six==1.16.0
     # via
