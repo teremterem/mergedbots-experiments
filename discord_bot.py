@@ -1,6 +1,8 @@
 """A simple Discord bot that reverses messages."""
 import asyncio
 import os
+from pprint import pformat
+from typing import Any
 
 import discord
 import httpx
@@ -10,15 +12,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-httpx_client = httpx.AsyncClient()
-discord_client = discord.Client(intents=discord.Intents.default())
-
 BOT_TOKEN_HEADER = "X-Chat-Merger-Bot-Token"
 
 DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 CHAT_MERGER_BOT_TOKEN = os.environ["CHAT_MERGER_BOT_TOKEN"]
 
+httpx_client = httpx.AsyncClient()
 sio = socketio.AsyncClient()
+discord_client = discord.Client(intents=discord.Intents.default())
 
 
 async def connect_to_chat_merger_websocket():
@@ -39,25 +40,30 @@ async def on_ready() -> None:
 @discord_client.event
 async def on_message(message: Message) -> None:
     """Called when a message is created and sent by a user."""
-    if message.author != discord_client.user:
-        await httpx_client.post(
-            "http://localhost:8000/bot_update",
-            json={"message": message.content},
-            headers={BOT_TOKEN_HEADER: CHAT_MERGER_BOT_TOKEN},
-        )
+    if message.author == discord_client.user:
+        # TODO is this necessary ?
+        return
 
-        # TODO this should be initiated by ChatMerger
-        await message.channel.send(message.content[::-1])
+    # print(message.channel.id, discord_client.get_channel(message.channel.id))
+    response = await httpx_client.post(
+        "http://localhost:8000/bot_update",
+        json={"message": message.content, "channel_id": message.channel.id},
+        headers={BOT_TOKEN_HEADER: CHAT_MERGER_BOT_TOKEN},
+    )
+    await message.channel.send(pformat(response.json()))
+
+
+@sio.event
+async def bot_update(update: dict[str, Any]):
+    # print(discord_client.get_channel(update["channel_id"]))
+    # await discord_client.get_channel(update["channel_id"]).send(pformat(update))
+    # TODO outgoing messages should go through ChatMerger too
+    pass
 
 
 @sio.event
 async def connect():
     print("Connected to server")
-
-
-@sio.event
-async def bot_update(data):
-    print("Received message:", type(data), data)
 
 
 @sio.event
