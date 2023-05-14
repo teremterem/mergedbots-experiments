@@ -1,9 +1,8 @@
 """Pydantic models of the MergeBots library."""
 # pylint: disable=no-name-in-module
-from typing import Callable, AsyncGenerator
-
-from langchain.schema import BaseMessage
 from pydantic import BaseModel
+
+from mergebots.utils import FulfillmentFunc
 
 
 class MergedBot(BaseModel):
@@ -12,4 +11,4 @@ class MergedBot(BaseModel):
     handle: str
     name: str
     description: str
-    fulfillment_func: Callable[[BaseMessage], AsyncGenerator[BaseMessage, None]]
+    fulfillment_func: FulfillmentFunc

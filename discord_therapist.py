@@ -3,7 +3,7 @@ import asyncio
 import os
 import re
 import traceback
-from typing import Generator, Any
+from typing import Any, AsyncGenerator
 
 import discord
 from discord import Message
@@ -51,7 +51,7 @@ def escape_markdown(text):
 
 
 @bot_merger.register_bot("dummy_bot", "Dummy Bot", "A bot that reverses messages and repeats them three times.")
-async def dummy_bot_fulfiller(message: BaseMessage) -> Generator[BaseMessage, None, None]:
+async def dummy_bot_fulfiller(message: BaseMessage) -> AsyncGenerator[BaseMessage, None]:
     """A dummy bot that reverses messages and repeats them three times."""
     for num in ("one", "two", "three"):
         await asyncio.sleep(2)
@@ -60,7 +60,7 @@ async def dummy_bot_fulfiller(message: BaseMessage) -> Generator[BaseMessage, No
 
 async def fulfill_message_with_typing(
     message: ChatMessage, typing_context_manager: Any
-) -> Generator[BaseMessage, None, None]:
+) -> AsyncGenerator[BaseMessage, None]:
     """
     Fulfill a message. Returns a generator that would yield zero or more responses to the message.
     typing_context_manager is a context manager that would be used to indicate that the bot is typing.
@@ -68,11 +68,11 @@ async def fulfill_message_with_typing(
     # TODO make this function a part of the MergeBots lib ?
     response_generator = bot_merger.fulfill_message(message, "dummy_bot")
     while True:
-        try:
-            async with typing_context_manager:
+        async with typing_context_manager:
+            try:
                 response = await anext(response_generator)
-        except StopAsyncIteration:
-            return
+            except StopAsyncIteration:
+                return
 
         yield response
 
