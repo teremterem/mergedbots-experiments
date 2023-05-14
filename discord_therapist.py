@@ -1,4 +1,5 @@
 """A simple Discord bot that reverses messages."""
+import asyncio
 import os
 
 import discord
@@ -20,12 +21,14 @@ async def on_ready() -> None:
 
 @discord_client.event
 async def on_message(message: Message) -> None:
-    """Called when a message is created and sent by a user."""
+    """Called when a message is sent to a channel (both a user message and a bot message)."""
     if message.author == discord_client.user:
-        # TODO is this necessary ? check if it is
+        # make sure we are not embarking on an "infinite loop" journey
         return
 
-    await message.channel.send("sup?")
+    async with message.channel.typing():
+        await asyncio.sleep(3)
+        await message.channel.send("sup?")
 
 
 if __name__ == "__main__":
