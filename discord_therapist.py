@@ -1,17 +1,17 @@
 """A simple Discord bot that reverses messages."""
 import asyncio
+import contextlib
 import os
 import re
 import traceback
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Any
 
 import discord
 from discord import Message
-from discord.context_managers import Typing
 from dotenv import load_dotenv
-from langchain.schema import ChatMessage, BaseMessage
 
 from mergebots import BotMerger
+from mergebots.models import MergedMessage, MergedBotMessage, MergedBot, MergedUserMessage, MergedUser
 
 load_dotenv()
 
@@ -19,6 +19,8 @@ DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 
 bot_merger = BotMerger()
 discord_client = discord.Client(intents=discord.Intents.default())
+
+_NULL_CONTEXT = contextlib.nullcontext()
 
 
 @discord_client.event
@@ -30,14 +32,15 @@ async def on_ready() -> None:
 @discord_client.event
 async def on_message(message: Message) -> None:
     """Called when a message is sent to a channel (both a user message and a bot message)."""
+    # TODO make this part of the library
     if message.author == discord_client.user:
         # make sure we are not embarking on an "infinite loop" journey
         return
 
     try:
-        async for response in fulfill_message_with_typing(
-            ChatMessage(role="user", content=message.content), message.channel.typing()
-        ):
+        merged_user = MergedUser(name=message.author.name)  # TODO is it worth caching these objects ?
+        user_message = MergedUserMessage(sender=merged_user, content=message.content)
+        async for response in fulfill_message_with_typing(user_message, message.channel.typing()):
             await message.channel.send(response.content)
     except Exception:
         await message.channel.send(f"```\n{traceback.format_exc()}\n```")
@@ -52,27 +55,41 @@ def escape_markdown(text):
 
 
 @bot_merger.register_bot("dummy_bot", "Dummy Bot", "A bot that reverses messages and repeats them three times.")
-async def dummy_bot_fulfiller(message: BaseMessage) -> AsyncGenerator[BaseMessage, None]:
+async def dummy_bot_fulfiller(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A dummy bot that reverses messages and repeats them three times."""
     for num in ("one", "two", "three"):
         await asyncio.sleep(1)
-        yield ChatMessage(role="assistant", content=f"{message.content[::-1]} {num}")
+        yield MergedBotMessage(
+            sender=bot,
+            content=f"{message.content[::-1]} {num}",
+            keep_typing=num != "three",
+        )
 
 
-async def fulfill_message_with_typing(message: ChatMessage, typing: Typing) -> AsyncGenerator[BaseMessage, None]:
+async def fulfill_message_with_typing(
+    message: MergedMessage,
+    typing_context_manager: Any,
+) -> AsyncGenerator[MergedMessage, None]:
     """
     Fulfill a message. Returns a generator that would yield zero or more responses to the message.
     typing_context_manager is a context manager that would be used to indicate that the bot is typing.
     """
     # TODO make this function a part of the MergeBots lib ?
     response_generator = bot_merger.fulfill_message(message, "dummy_bot")
+    response = None
     while True:
-        async with typing:
-            try:
+        try:
+            if response and response.keep_typing:
+                _typing_context_manager = typing_context_manager
+            else:
+                _typing_context_manager = _NULL_CONTEXT
+
+            async with _typing_context_manager:
                 response = await anext(response_generator)
-                # TODO make the generator above return some sort of "last_message" flag to stop typing
-            except StopAsyncIteration:
-                return
+
+        except StopAsyncIteration:
+            return
+
         yield response
 
 

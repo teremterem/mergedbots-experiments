@@ -1,10 +1,7 @@
-"""Core logic of the MergeBots library."""
+"""Core logic of MergeBots library."""
 from typing import Callable, AsyncGenerator
 
-from langchain.schema import BaseMessage
-
-from mergebots.models import MergedBot
-from mergebots.utils import FulfillmentFunc
+from mergebots.models import MergedBot, MergedMessage, FulfillmentFunc
 
 
 class BotMerger:
@@ -37,8 +34,8 @@ class BotMerger:
         """Get a merged bot by its handle."""
         return self._merged_bots[bot_handle]
 
-    async def fulfill_message(self, message: BaseMessage, bot_handle: str) -> AsyncGenerator[BaseMessage, None]:
+    async def fulfill_message(self, message: MergedMessage, bot_handle: str) -> AsyncGenerator[MergedMessage, None]:
         """Fulfill a message. Returns a generator that would yield zero or more responses to the message."""
-        # TODO make this function part of some bot class definition ? (BotClient, for example ?)
-        async for response in self.get_merged_bot(bot_handle).fulfillment_func(message):
+        bot = self.get_merged_bot(bot_handle)
+        async for response in bot.fulfillment_func(bot, message):
             yield response
