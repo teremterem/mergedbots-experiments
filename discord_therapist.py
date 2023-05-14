@@ -1,10 +1,11 @@
 """A simple Discord bot that reverses messages."""
 import os
+from typing import Generator, Any
 
 import discord
 from discord import Message
 from dotenv import load_dotenv
-from langchain.schema import ChatMessage
+from langchain.schema import ChatMessage, BaseMessage
 
 from mergebots import fulfill_message
 
@@ -28,9 +29,28 @@ async def on_message(message: Message) -> None:
         # make sure we are not embarking on an "infinite loop" journey
         return
 
-    async with message.channel.typing():
-        async for response in fulfill_message(ChatMessage(role="user", content=message.content)):
-            await message.channel.send(response.content)
+    async for response in fulfill_message_with_typing(
+        ChatMessage(role="user", content=message.content), message.channel.typing()
+    ):
+        await message.channel.send(response.content)
+
+
+async def fulfill_message_with_typing(
+    message: ChatMessage, typing_context_manager: Any
+) -> Generator[BaseMessage, None, None]:
+    """
+    Fulfill a message. Returns a generator that would yield zero or more responses to the message.
+    typing_context_manager is a context manager that would be used to indicate that the bot is typing.
+    """
+    response_generator = fulfill_message(message)
+    while True:
+        try:
+            async with typing_context_manager:
+                response = await anext(response_generator)
+        except StopAsyncIteration:
+            return
+
+        yield response
 
 
 if __name__ == "__main__":
