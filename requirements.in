@@ -1,4 +1,8 @@
 discord.py==2.2.3
-httpx==0.24.0
+# httpx==0.24.0  # not needed just yet
+langchain==0.0.168
+lmql==0.0.6.3  # just to play with for now
+llama-index==0.6.6  # just to play with for now
+pydantic==1.10.7
 python-dotenv==1.0.0
-python-socketio[client]==5.8.0
+# python-socketio[client]==5.8.0  # not needed just yet
