@@ -3,10 +3,11 @@ import asyncio
 import os
 import re
 import traceback
-from typing import Any, AsyncGenerator
+from typing import AsyncGenerator
 
 import discord
 from discord import Message
+from discord.context_managers import Typing
 from dotenv import load_dotenv
 from langchain.schema import ChatMessage, BaseMessage
 
@@ -54,13 +55,11 @@ def escape_markdown(text):
 async def dummy_bot_fulfiller(message: BaseMessage) -> AsyncGenerator[BaseMessage, None]:
     """A dummy bot that reverses messages and repeats them three times."""
     for num in ("one", "two", "three"):
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         yield ChatMessage(role="assistant", content=f"{message.content[::-1]} {num}")
 
 
-async def fulfill_message_with_typing(
-    message: ChatMessage, typing_context_manager: Any
-) -> AsyncGenerator[BaseMessage, None]:
+async def fulfill_message_with_typing(message: ChatMessage, typing: Typing) -> AsyncGenerator[BaseMessage, None]:
     """
     Fulfill a message. Returns a generator that would yield zero or more responses to the message.
     typing_context_manager is a context manager that would be used to indicate that the bot is typing.
@@ -68,12 +67,12 @@ async def fulfill_message_with_typing(
     # TODO make this function a part of the MergeBots lib ?
     response_generator = bot_merger.fulfill_message(message, "dummy_bot")
     while True:
-        async with typing_context_manager:
+        async with typing:
             try:
                 response = await anext(response_generator)
+                # TODO make the generator above return some sort of "last_message" flag to stop typing
             except StopAsyncIteration:
                 return
-
         yield response
 
 
