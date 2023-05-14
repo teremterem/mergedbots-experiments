@@ -1,6 +1,6 @@
 """MergeBots package."""
-from mergebots.core import fulfill_message
+from mergebots.core import BotMerger
 
 __all__ = [
-    "fulfill_message",
+    "BotMerger",
 ]

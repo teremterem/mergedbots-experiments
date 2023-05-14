@@ -1,13 +1,43 @@
 """Core logic of the MergeBots library."""
-import asyncio
-from typing import Generator
+from typing import Generator, Callable
 
-from langchain.schema import BaseMessage, ChatMessage
+from langchain.schema import BaseMessage
+
+from mergebots.models import MergedBot
 
 
-async def fulfill_message(message: BaseMessage) -> Generator[BaseMessage, None, None]:
-    """Fulfill a message. Returns a generator that would yield zero or more responses to the message."""
-    for i, num in enumerate(("one", "two", "three", "four", "five", "six", "seven")):
-        if i % 2:
-            await asyncio.sleep(5)
-        yield ChatMessage(role="assistant", content=f"{message.content} {num}")
+class BotMerger:
+    """A manager of merged bots."""
+
+    def __init__(self) -> None:
+        self._merged_bots = {}
+
+    def register_bot(self, handle: str, name: str, description: str) -> Callable[[Callable], Callable]:
+        """A decorator that registers a fulfillment function as a MergedBot."""
+
+        def decorator(fulfillment_func: Callable) -> Callable:
+            self.register_bot_obj(
+                MergedBot(
+                    handle=handle,
+                    name=name,
+                    description=description,
+                    fulfillment_func=fulfillment_func,
+                )
+            )
+            return fulfillment_func
+
+        return decorator
+
+    def register_bot_obj(self, bot: MergedBot) -> None:
+        """Register a MergedBot object."""
+        self._merged_bots[bot.handle] = bot
+
+    def get_merged_bot(self, bot_handle: str) -> "MergedBot":
+        """Get a merged bot by its handle."""
+        return self._merged_bots[bot_handle]
+
+    async def fulfill_message(self, message: BaseMessage, bot_handle: str) -> Generator[BaseMessage, None, None]:
+        """Fulfill a message. Returns a generator that would yield zero or more responses to the message."""
+        # TODO make this function part of some bot class definition ? (BotClient, for example ?)
+        async for response in self.get_merged_bot(bot_handle).fulfillment_func(message):
+            yield response
