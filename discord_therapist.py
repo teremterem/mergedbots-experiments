@@ -79,7 +79,7 @@ async def fulfill_message_with_typing(
     response = None
     while True:
         try:
-            if response and response.keep_typing:
+            if not response or response.keep_typing:
                 _typing_context_manager = typing_context_manager
             else:
                 _typing_context_manager = _NULL_CONTEXT
