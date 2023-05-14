@@ -50,6 +50,7 @@ def escape_markdown(text):
     return re.sub(rf"([{re.escape(escape_chars)}])", r"\\\1", text)
 
 
+@bot_merger.register_bot("dummy_bot", "Dummy Bot", "A bot that reverses messages and repeats them three times.")
 async def dummy_bot_fulfiller(message: BaseMessage) -> Generator[BaseMessage, None, None]:
     """A dummy bot that reverses messages and repeats them three times."""
     for num in ("one", "two", "three"):
