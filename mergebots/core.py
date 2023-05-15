@@ -35,6 +35,7 @@ class BotMerger:
         """Fulfill a message. Returns a generator that would yield zero or more responses to the message."""
         bot = self.merged_bots[bot_handle]
         conversation = self.channels[channel_custom_id].current_conversation
+        # TODO append messages with "latency" (after it is processed by MergedBot and not before) ?
         conversation.messages.append(message)
         async for response in bot.fulfillment_func(bot, conversation, message):
             conversation.messages.append(response)
