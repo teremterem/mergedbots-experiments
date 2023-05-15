@@ -39,7 +39,7 @@ async def dummy_bot_fulfiller(
         )
     yield FinalBotMessage(
         sender=bot,
-        content="```" + "\n".join(msg.content for msg in conversation.messages if msg.sender.is_human) + "```",
+        content="```" + "\n".join([msg.content for msg in conversation.messages if msg.sender.is_human]) + "```",
     )
 
 
