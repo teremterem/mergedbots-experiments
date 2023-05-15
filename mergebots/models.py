@@ -2,9 +2,9 @@
 # pylint: disable=no-name-in-module
 from typing import Callable, AsyncGenerator
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-FulfillmentFunc = Callable[["MergedBot", "MergedMessage"], AsyncGenerator["MergedMessage", None]]
+FulfillmentFunc = Callable[["MergedBot", "MergedConversation", "MergedMessage"], AsyncGenerator["MergedMessage", None]]
 
 
 class MergedParticipant(BaseModel):
@@ -64,3 +64,16 @@ class FinalBotMessage(MergedBotMessage):
     """A final message that can be sent by a bot. A final message indicates that the bot has finished typing."""
 
     keep_typing: bool = False
+
+
+class MergedConversation(BaseModel):
+    """A conversation between bots and users."""
+
+    messages: list[MergedMessage] = Field(default_factory=list)
+
+
+class MergedChannel(BaseModel):
+    """A channel that bots and users can interact in."""
+
+    # TODO custom_id: str ?
+    current_conversation: MergedConversation = Field(default_factory=MergedConversation)

@@ -23,13 +23,15 @@ def attach_discord_client(discord_client: discord.Client, bot_merger: BotMerger,
         try:
             merged_user = MergedUser(name=message.author.name)  # TODO is it worth caching these objects ?
             user_message = MergedUserMessage(sender=merged_user, content=message.content)
-            async for response in fulfill_message_with_typing(
-                bot_merger,
-                merged_bot_handle,
-                user_message,
-                message.channel.typing(),
+            async for bot_message in fulfill_message_with_typing(
+                bot_merger=bot_merger,
+                bot_handle=merged_bot_handle,
+                # TODO read about message.channel.id... is it unique across all servers ?
+                channel_custom_id=f"discord-{message.channel.id}",
+                message=user_message,
+                typing_context_manager=message.channel.typing(),
             ):
-                await message.channel.send(response.content)
+                await message.channel.send(bot_message.content)
         except Exception:
             await message.channel.send(f"```\n{traceback.format_exc()}\n```")
             raise
@@ -39,7 +41,8 @@ def attach_discord_client(discord_client: discord.Client, bot_merger: BotMerger,
 
 async def fulfill_message_with_typing(
     bot_merger: BotMerger,
-    merged_bot_handle: str,
+    bot_handle: str,
+    channel_custom_id: str,
     message: MergedMessage,
     typing_context_manager: Any,
 ) -> AsyncGenerator[MergedMessage, None]:
@@ -47,7 +50,11 @@ async def fulfill_message_with_typing(
     Fulfill a message. Returns a generator that would yield zero or more responses to the message.
     typing_context_manager is a context manager that would be used to indicate that the bot is typing.
     """
-    response_generator = bot_merger.fulfill_message(message, merged_bot_handle)
+    response_generator = bot_merger.fulfill_message(
+        message=message,
+        bot_handle=bot_handle,
+        channel_custom_id=channel_custom_id,
+    )
     response = None
     while True:
         try:

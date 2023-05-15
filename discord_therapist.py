@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from mergebots import BotMerger
 from mergebots.discord_integration import attach_discord_client
-from mergebots.models import MergedMessage, MergedBotMessage, MergedBot
+from mergebots.models import MergedMessage, MergedConversation, MergedBot, InterimBotMessage, FinalBotMessage
 
 load_dotenv()
 
@@ -25,15 +25,22 @@ async def on_ready() -> None:
 
 
 @bot_merger.register_bot("dummy_bot", "Dummy Bot", "A bot that reverses messages and repeats them three times.")
-async def dummy_bot_fulfiller(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+async def dummy_bot_fulfiller(
+    bot: MergedBot,
+    conversation: MergedConversation,
+    message: MergedMessage,
+) -> AsyncGenerator[MergedMessage, None]:
     """A dummy bot that reverses messages and repeats them three times."""
     for num in ("one", "two", "three"):
         await asyncio.sleep(1)
-        yield MergedBotMessage(
+        yield InterimBotMessage(
             sender=bot,
             content=f"{message.content[::-1]} {num}",
-            keep_typing=num != "three",
         )
+    yield FinalBotMessage(
+        sender=bot,
+        content="\n\n".join(msg.content for msg in conversation.messages if msg.sender.is_human),
+    )
 
 
 if __name__ == "__main__":
