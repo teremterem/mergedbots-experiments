@@ -59,7 +59,7 @@ async def dummy_bot_fulfiller(
         + "\n```",
     )
     # TODO History object is modified after yield (a previous message is appended) - is it confusing ?
-    #  Probably better to rething (freeze, make copies etc.)
+    #  Probably better to rethink this (freeze, make copies etc.)
     #  But don't come back to it unless you have more than one bot in your experiment !
 
 

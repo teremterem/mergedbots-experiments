@@ -14,7 +14,7 @@ from mergebots.models import MergedUserMessage, MergedUser
 # TODO turn the content of this module into a class
 
 
-CHANNEL_CONVS = defaultdict(MergedConversation)
+CHANNEL_CONVS: dict[Any, MergedConversation] = defaultdict(MergedConversation)
 
 
 def attach_discord_client(discord_client: discord.Client, bot_merger: BotMerger, merged_bot_handle: str):
