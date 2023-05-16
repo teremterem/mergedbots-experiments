@@ -58,6 +58,9 @@ async def dummy_bot_fulfiller(
         + "\n".join([msg.content for msg in conversation if msg.sender.is_human and msg.is_visible_to_bots])
         + "\n```",
     )
+    # TODO History object is modified after yield (a previous message is appended) - is it confusing ?
+    #  Probably better to rething (freeze, make copies etc.)
+    #  But don't come back to it unless you have more than one bot in your experiment !
 
 
 if __name__ == "__main__":
