@@ -1,5 +1,5 @@
-"""Pydantic models of MergeBots library."""
 # pylint: disable=no-name-in-module
+"""Pydantic models of MergeBots library."""
 from typing import Callable, AsyncGenerator
 
 from pydantic import BaseModel, Field

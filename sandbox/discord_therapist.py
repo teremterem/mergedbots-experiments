@@ -1,11 +1,15 @@
+# pylint: disable=wrong-import-position
 """A simple Discord bot that reverses messages."""
 import asyncio
 import os
+import sys
+from pathlib import Path
 from typing import AsyncGenerator
 
 import discord
 from dotenv import load_dotenv
 
+sys.path.append(str(Path(__file__).parents[1]))
 from mergebots import BotMerger
 from mergebots.discord_integration import attach_discord_client
 from mergebots.models import MergedMessage, MergedConversation, MergedBot, FinalBotMessage
