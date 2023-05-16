@@ -15,6 +15,7 @@ from mergebots.models import MergedUserMessage, MergedUser
 
 
 CHANNEL_CONVS: dict[Any, MergedConversation] = defaultdict(MergedConversation)
+MSG_LIMIT = 1900
 
 
 def attach_discord_client(discord_client: discord.Client, bot_merger: BotMerger, merged_bot_handle: str):
@@ -49,7 +50,10 @@ def attach_discord_client(discord_client: discord.Client, bot_merger: BotMerger,
                 history=history,
                 typing_context_manager=discord_message.channel.typing(),
             ):
-                await discord_message.channel.send(bot_message.content)
+                for chunk in (
+                    bot_message.content[i : i + MSG_LIMIT] for i in range(0, len(bot_message.content), MSG_LIMIT)
+                ):
+                    await discord_message.channel.send(chunk)
         except Exception:
             await discord_message.channel.send(f"```\n{traceback.format_exc()}\n```")
             raise

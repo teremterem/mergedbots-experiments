@@ -72,9 +72,7 @@ async def therapist_fulfiller(
         #     "\n\nASSISTANT:",
         # ],
     )
-    responses = llm_result.generations[0][0].text.split("\n\n")
-    for response in responses:
-        yield FinalBotMessage(sender=bot, content=response)
+    yield FinalBotMessage(sender=bot, content=llm_result.generations[0][0].text)
 
     # TODO History object is modified after yield (a previous message is appended) - is it confusing ?
     #  Probably better to rethink this (freeze, make copies etc.)
