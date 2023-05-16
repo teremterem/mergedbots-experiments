@@ -32,8 +32,14 @@ class BotMerger:
     ) -> AsyncGenerator[MergedMessage, None]:
         """Fulfill a message. Returns a generator that would yield zero or more responses to the message."""
         bot = self._merged_bots[bot_handle]
-        # TODO append first message with "latency" (after it is processed by MergedBot and not before)
-        history.messages.append(message)
+        first_message_appended = False
         async for response in bot.fulfillment_func(bot, message, history):
+            if not first_message_appended:
+                # appending the first message to the history after processing has started to separate it from the
+                # history for the bot that is being called
+                history.messages.append(message)
+                first_message_appended = True
             yield response
+            # appending bot response to the history after it has been yielded to separate it from the history for the
+            # external bots that are possibly calling this bot
             history.messages.append(response)
