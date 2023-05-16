@@ -4,10 +4,6 @@
 #
 #    pip-compile --resolver=backtracking dev-requirements.in
 #
-aiofiles==22.1.0
-    # via ypy-websocket
-aiosqlite==0.19.0
-    # via ypy-websocket
 anyio==3.6.2
     # via jupyter-server
 appnope==0.1.3
@@ -15,18 +11,17 @@ appnope==0.1.3
     #   ipykernel
     #   ipython
 argon2-cffi==21.3.0
-    # via
-    #   jupyter-server
-    #   nbclassic
-    #   notebook
+    # via jupyter-server
 argon2-cffi-bindings==21.2.0
     # via argon2-cffi
 arrow==1.2.3
     # via isoduration
-astroid==2.15.4
+astroid==2.15.5
     # via pylint
 asttokens==2.2.1
     # via stack-data
+async-lru==2.0.2
+    # via jupyterlab
 attrs==23.1.0
     # via
     #   -c requirements.txt
@@ -87,19 +82,12 @@ idna==3.4
     #   anyio
     #   jsonschema
     #   requests
-ipykernel==6.23.0
-    # via
-    #   nbclassic
-    #   notebook
+ipykernel==6.23.1
+    # via jupyterlab
 ipython==8.13.2
     # via
     #   -r dev-requirements.in
     #   ipykernel
-    #   jupyterlab
-ipython-genutils==0.2.0
-    # via
-    #   nbclassic
-    #   notebook
 isoduration==20.11.0
     # via jsonschema
 isort==5.12.0
@@ -111,10 +99,8 @@ jinja2==3.1.2
     #   jupyter-server
     #   jupyterlab
     #   jupyterlab-server
-    #   nbclassic
     #   nbconvert
-    #   notebook
-json5==0.9.11
+json5==0.9.14
     # via jupyterlab-server
 jsonpointer==2.3
     # via jsonschema
@@ -127,42 +113,29 @@ jupyter-client==8.2.0
     # via
     #   ipykernel
     #   jupyter-server
-    #   nbclassic
     #   nbclient
-    #   notebook
 jupyter-core==5.3.0
     # via
     #   ipykernel
     #   jupyter-client
     #   jupyter-server
     #   jupyterlab
-    #   nbclassic
     #   nbclient
     #   nbconvert
     #   nbformat
-    #   notebook
 jupyter-events==0.6.3
-    # via
-    #   jupyter-server
-    #   jupyter-server-fileid
+    # via jupyter-server
+jupyter-lsp==2.1.0
+    # via jupyterlab
 jupyter-server==2.5.0
     # via
-    #   jupyter-server-fileid
+    #   jupyter-lsp
     #   jupyterlab
     #   jupyterlab-server
-    #   nbclassic
     #   notebook-shim
-jupyter-server-fileid==0.9.0
-    # via jupyter-server-ydoc
 jupyter-server-terminals==0.4.4
     # via jupyter-server
-jupyter-server-ydoc==0.8.0
-    # via jupyterlab
-jupyter-ydoc==0.2.4
-    # via
-    #   jupyter-server-ydoc
-    #   jupyterlab
-jupyterlab==3.6.3
+jupyterlab==4.0.0
     # via -r dev-requirements.in
 jupyterlab-pygments==0.2.2
     # via nbconvert
@@ -186,35 +159,21 @@ mypy-extensions==1.0.0
     # via
     #   -c requirements.txt
     #   black
-nbclassic==1.0.0
-    # via
-    #   jupyterlab
-    #   notebook
 nbclient==0.7.4
     # via nbconvert
 nbconvert==7.4.0
-    # via
-    #   jupyter-server
-    #   nbclassic
-    #   notebook
+    # via jupyter-server
 nbformat==5.8.0
     # via
     #   jupyter-server
-    #   nbclassic
     #   nbclient
     #   nbconvert
-    #   notebook
 nest-asyncio==1.5.6
-    # via
-    #   ipykernel
-    #   nbclassic
-    #   notebook
+    # via ipykernel
 nodeenv==1.8.0
     # via pre-commit
-notebook==6.5.4
-    # via jupyterlab
 notebook-shim==0.2.3
-    # via nbclassic
+    # via jupyterlab
 packaging==23.1
     # via
     #   -c requirements.txt
@@ -246,10 +205,7 @@ platformdirs==3.5.1
 pre-commit==3.3.1
     # via -r dev-requirements.in
 prometheus-client==0.16.0
-    # via
-    #   jupyter-server
-    #   nbclassic
-    #   notebook
+    # via jupyter-server
 prompt-toolkit==3.0.38
     # via ipython
 psutil==5.9.5
@@ -289,8 +245,6 @@ pyzmq==25.0.2
     #   ipykernel
     #   jupyter-client
     #   jupyter-server
-    #   nbclassic
-    #   notebook
 requests==2.29.0
     # via
     #   -c requirements.txt
@@ -304,10 +258,7 @@ rfc3986-validator==0.1.1
     #   jsonschema
     #   jupyter-events
 send2trash==1.8.2
-    # via
-    #   jupyter-server
-    #   nbclassic
-    #   notebook
+    # via jupyter-server
 six==1.16.0
     # via
     #   -c requirements.txt
@@ -325,8 +276,6 @@ terminado==0.17.1
     # via
     #   jupyter-server
     #   jupyter-server-terminals
-    #   nbclassic
-    #   notebook
 tinycss2==1.2.1
     # via nbconvert
 tomlkit==0.11.8
@@ -337,8 +286,6 @@ tornado==6.3.2
     #   jupyter-client
     #   jupyter-server
     #   jupyterlab
-    #   nbclassic
-    #   notebook
     #   terminado
 traitlets==5.9.0
     # via
@@ -349,12 +296,15 @@ traitlets==5.9.0
     #   jupyter-core
     #   jupyter-events
     #   jupyter-server
+    #   jupyterlab
     #   matplotlib-inline
-    #   nbclassic
     #   nbclient
     #   nbconvert
     #   nbformat
-    #   notebook
+typing-extensions==4.5.0
+    # via
+    #   -c requirements.txt
+    #   async-lru
 uri-template==1.2.0
     # via jsonschema
 urllib3==1.26.15
@@ -379,12 +329,6 @@ wheel==0.40.0
     #   pip-tools
 wrapt==1.15.0
     # via astroid
-y-py==0.5.9
-    # via
-    #   jupyter-ydoc
-    #   ypy-websocket
-ypy-websocket==0.8.2
-    # via jupyter-server-ydoc
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
