@@ -1,22 +1,20 @@
 """Core logic of MergeBots library."""
-from collections import defaultdict
 from typing import Callable, AsyncGenerator
 
-from mergebots.models import MergedBot, MergedMessage, FulfillmentFunc, MergedChannel
+from mergebots.models import MergedBot, MergedMessage, FulfillmentFunc, MergedConversation
 
 
 class BotMerger:
     """A manager of merged bots."""
 
     def __init__(self) -> None:
-        self.merged_bots = {}
-        self.channels = defaultdict(MergedChannel)
+        self._merged_bots = {}
 
     def register_bot(self, handle: str, name: str, description: str) -> Callable[[FulfillmentFunc], FulfillmentFunc]:
         """A decorator that registers a fulfillment function as a MergedBot."""
 
         def decorator(fulfillment_func: FulfillmentFunc) -> FulfillmentFunc:
-            self.merged_bots[handle] = MergedBot(
+            self._merged_bots[handle] = MergedBot(
                 handle=handle,
                 name=name,
                 description=description,
@@ -28,15 +26,14 @@ class BotMerger:
 
     async def fulfill_message(
         self,
-        message: MergedMessage,
         bot_handle: str,
-        channel_custom_id: str,
+        message: MergedMessage,
+        history: MergedConversation,
     ) -> AsyncGenerator[MergedMessage, None]:
         """Fulfill a message. Returns a generator that would yield zero or more responses to the message."""
-        bot = self.merged_bots[bot_handle]
-        conversation = self.channels[channel_custom_id].current_conversation
-        # TODO append messages with "latency" (after it is processed by MergedBot and not before) ?
-        conversation.messages.append(message)
-        async for response in bot.fulfillment_func(bot, conversation, message):
-            conversation.messages.append(response)
+        bot = self._merged_bots[bot_handle]
+        # TODO append first message with "latency" (after it is processed by MergedBot and not before)
+        history.messages.append(message)
+        async for response in bot.fulfillment_func(bot, message, history):
             yield response
+            history.messages.append(response)

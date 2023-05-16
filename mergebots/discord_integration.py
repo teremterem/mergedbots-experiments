@@ -2,38 +2,56 @@
 import contextlib
 import re
 import traceback
+from collections import defaultdict
 from typing import Any, AsyncGenerator
 
 import discord
 
 from mergebots import BotMerger
-from mergebots.models import MergedMessage
+from mergebots.models import MergedMessage, MergedConversation
 from mergebots.models import MergedUserMessage, MergedUser
+
+# TODO turn the content of this module into a class
+
+
+CHANNEL_CONVS = defaultdict(MergedConversation)
 
 
 def attach_discord_client(discord_client: discord.Client, bot_merger: BotMerger, merged_bot_handle: str):
     """Attach a Discord client to a merged bot by its handle."""
 
-    async def on_message(message: discord.Message) -> None:
+    async def on_message(discord_message: discord.Message) -> None:
         """Called when a message is sent to a channel (both a user message and a bot message)."""
-        if message.author == discord_client.user:
+        if discord_message.author == discord_client.user:
             # make sure we are not embarking on an "infinite loop" journey
             return
 
         try:
-            merged_user = MergedUser(name=message.author.name)  # TODO is it worth caching these objects ?
-            user_message = MergedUserMessage(sender=merged_user, content=message.content)
+            merged_user = MergedUser(name=discord_message.author.name)  # TODO is it worth caching these objects ?
+            message_visible_to_bots = True
+            if discord_message.content.startswith("!"):
+                # any prefix command just starts a new conversation for now
+                # TODO rethink this ?
+                CHANNEL_CONVS[discord_message.channel.id] = MergedConversation()
+                message_visible_to_bots = False
+            # TODO read about discord_message.channel.id... is it unique across all servers ?
+            history = CHANNEL_CONVS[discord_message.channel.id]
+
+            user_message = MergedUserMessage(
+                sender=merged_user,
+                content=discord_message.content,
+                is_visible_to_bots=message_visible_to_bots,
+            )
             async for bot_message in fulfill_message_with_typing(
                 bot_merger=bot_merger,
                 bot_handle=merged_bot_handle,
-                # TODO read about message.channel.id... is it unique across all servers ?
-                channel_custom_id=f"discord-{message.channel.id}",
                 message=user_message,
-                typing_context_manager=message.channel.typing(),
+                history=history,
+                typing_context_manager=discord_message.channel.typing(),
             ):
-                await message.channel.send(bot_message.content)
+                await discord_message.channel.send(bot_message.content)
         except Exception:
-            await message.channel.send(f"```\n{traceback.format_exc()}\n```")
+            await discord_message.channel.send(f"```\n{traceback.format_exc()}\n```")
             raise
 
     discord_client.event(on_message)
@@ -42,8 +60,8 @@ def attach_discord_client(discord_client: discord.Client, bot_merger: BotMerger,
 async def fulfill_message_with_typing(
     bot_merger: BotMerger,
     bot_handle: str,
-    channel_custom_id: str,
     message: MergedMessage,
+    history: MergedConversation,
     typing_context_manager: Any,
 ) -> AsyncGenerator[MergedMessage, None]:
     """
@@ -51,14 +69,14 @@ async def fulfill_message_with_typing(
     typing_context_manager is a context manager that would be used to indicate that the bot is typing.
     """
     response_generator = bot_merger.fulfill_message(
-        message=message,
         bot_handle=bot_handle,
-        channel_custom_id=channel_custom_id,
+        message=message,
+        history=history,
     )
     response = None
     while True:
         try:
-            if not response or response.keep_typing:
+            if not response or response.is_still_typing:
                 _typing_context_manager = typing_context_manager
             else:
                 _typing_context_manager = _null_context

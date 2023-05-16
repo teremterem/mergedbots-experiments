@@ -4,7 +4,10 @@ from typing import Callable, AsyncGenerator
 
 from pydantic import BaseModel, Field
 
-FulfillmentFunc = Callable[["MergedBot", "MergedConversation", "MergedMessage"], AsyncGenerator["MergedMessage", None]]
+FulfillmentFunc = Callable[["MergedBot", "MergedMessage", "MergedConversation"], AsyncGenerator["MergedMessage", None]]
+
+
+# TODO freeze all models upon instantiation ?
 
 
 class MergedParticipant(BaseModel):
@@ -35,14 +38,15 @@ class MergedMessage(BaseModel):
 
     sender: MergedParticipant
     content: str
-    keep_typing: bool
+    is_visible_to_bots: bool = True
+    is_still_typing: bool
 
 
 class MergedUserMessage(MergedMessage):
     """A message that can be sent by a user."""
 
     sender: MergedUser
-    keep_typing: bool = False
+    is_still_typing: bool = False  # TODO filter such messages out at the level of BotMerger ?
 
 
 class MergedBotMessage(MergedMessage):
@@ -57,23 +61,16 @@ class InterimBotMessage(MergedBotMessage):
     (there will be more messages).
     """
 
-    keep_typing: bool = True
+    is_still_typing: bool = True
 
 
 class FinalBotMessage(MergedBotMessage):
     """A final message that can be sent by a bot. A final message indicates that the bot has finished typing."""
 
-    keep_typing: bool = False
+    is_still_typing: bool = False
 
 
 class MergedConversation(BaseModel):
     """A conversation between bots and users."""
 
     messages: list[MergedMessage] = Field(default_factory=list)
-
-
-class MergedChannel(BaseModel):
-    """A channel that bots and users can interact in."""
-
-    # TODO custom_id: str ?
-    current_conversation: MergedConversation = Field(default_factory=MergedConversation)
