@@ -33,7 +33,7 @@ async def on_ready() -> None:
     print("Logged in as", discord_client.user)
 
 
-@bot_merger.register_bot("dummy_bot", "Dummy Bot", "A bot that reverses messages and repeats them three times.")
+@bot_merger.register_bot("dummy_bot", "Dummy Bot", "")
 async def dummy_bot_fulfiller(
     bot: MergedBot,
     message: MergedMessage,
@@ -50,13 +50,13 @@ async def dummy_bot_fulfiller(
     #     sender=bot,
     #     content="```" + "\n".join([msg.content for msg in conversation.messages if msg.sender.is_human]) + "```",
     # )
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
     conversation = [*history.messages, message]
     yield FinalBotMessage(
         sender=bot,
-        content="```"
+        content="```\n"
         + "\n".join([msg.content for msg in conversation if msg.sender.is_human and msg.is_visible_to_bots])
-        + "```",
+        + "\n```",
     )
 
 
