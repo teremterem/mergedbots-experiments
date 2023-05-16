@@ -90,7 +90,7 @@ async def therapist_fulfiller(
 
     conversation = [msg for msg in itertools.chain(history.messages, (message,)) if msg.is_visible_to_bots]
     if not conversation:
-        yield FinalBotMessage(sender=bot, content="_CONVERSATION RESTARTED_", is_visible_to_bots=False)
+        yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED\n```", is_visible_to_bots=False)
         return
 
     streaming = StreamingCallbackHandler()
