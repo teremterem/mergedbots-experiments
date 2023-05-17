@@ -54,8 +54,13 @@ def attach_discord_client(discord_client: discord.Client, bot_merger: BotMerger,
                     bot_message.content[i : i + MSG_LIMIT] for i in range(0, len(bot_message.content), MSG_LIMIT)
                 ):
                     await discord_message.channel.send(chunk)
-        except Exception:
-            await discord_message.channel.send(f"```\n{traceback.format_exc()}\n```")
+        except Exception as exc:
+            # we can't just use traceback.format_exc() without arguments because the exception may be raised
+            # in a different coroutine, and then the traceback would be empty
+            # TODO why it is still empty when thrown from a different coroutine ?
+            await discord_message.channel.send(
+                f"```\n{traceback.format_exception(type(exc), exc, exc.__traceback__)}\n```"
+            )
             raise
 
     discord_client.event(on_message)
