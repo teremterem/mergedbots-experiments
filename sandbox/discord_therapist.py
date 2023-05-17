@@ -52,6 +52,7 @@ async def therapist_fulfiller(
     if not conversation:
         yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED 🔄\n```", is_visible_to_bots=False)
         return
+
     model_name = "gpt-3.5-turbo"
     yield InterimBotMessage(sender=bot, content=f"```{model_name} ⏳```", is_visible_to_bots=False)
 

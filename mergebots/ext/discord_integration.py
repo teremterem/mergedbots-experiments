@@ -1,15 +1,16 @@
 """Discord integration for MergeBots."""
 import contextlib
 import re
-import traceback
 from collections import defaultdict
 from typing import Any, AsyncGenerator
 
 import discord
 
-from mergebots import BotMerger
 from mergebots.models import MergedMessage, MergedConversation
 from mergebots.models import MergedUserMessage, MergedUser
+from ..core import BotMerger
+from ..errors import ErrorWrapper
+from ..utils import format_error_with_full_tb, get_text_chunks
 
 # TODO turn the content of this module into a class
 
@@ -50,18 +51,13 @@ def attach_discord_client(discord_client: discord.Client, bot_merger: BotMerger,
                 history=history,
                 typing_context_manager=discord_message.channel.typing(),
             ):
-                for chunk in (
-                    bot_message.content[i : i + MSG_LIMIT] for i in range(0, len(bot_message.content), MSG_LIMIT)
-                ):
+                for chunk in get_text_chunks(bot_message.content, MSG_LIMIT):
                     await discord_message.channel.send(chunk)
-        except Exception as exc:
-            # we can't just use traceback.format_exc() without arguments because the exception may be raised
-            # in a different coroutine, and then the traceback would be empty
-            # TODO why it is still empty when thrown from a different coroutine ?
-            await discord_message.channel.send(
-                f"```\n{traceback.format_exception(type(exc), exc, exc.__traceback__)}\n```"
-            )
-            raise
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            if isinstance(exc, ErrorWrapper):
+                exc = exc.error
+            for chunk in get_text_chunks(format_error_with_full_tb(exc), MSG_LIMIT):
+                await discord_message.channel.send(f"```\n{chunk}\n```")
 
     discord_client.event(on_message)
 

@@ -5,6 +5,7 @@ from typing import AsyncGenerator, Coroutine
 
 from langchain.callbacks.base import AsyncCallbackHandler
 
+from ..errors import ErrorWrapper
 from ..models import MergedBot, MergedMessage, InterimBotMessage, FinalBotMessage
 
 
@@ -35,7 +36,7 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
         while True:
             msg = await self._msg_queue.get()
             if isinstance(msg, Exception):
-                raise msg
+                raise ErrorWrapper(error=msg)
             yield msg
 
     async def on_llm_new_token(self, token: str, **kwargs) -> None:
