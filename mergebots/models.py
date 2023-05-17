@@ -38,7 +38,7 @@ class MergedMessage(BaseModel):
 
     sender: MergedParticipant
     content: str
-    is_visible_to_bots: bool = True
+    is_visible_to_bots: bool = True  # TODO filter such messages out at the level of BotMerger ?
     is_still_typing: bool
 
 
@@ -46,7 +46,7 @@ class MergedUserMessage(MergedMessage):
     """A message that can be sent by a user."""
 
     sender: MergedUser
-    is_still_typing: bool = False  # TODO filter such messages out at the level of BotMerger ?
+    is_still_typing: bool = False
 
 
 class MergedBotMessage(MergedMessage):

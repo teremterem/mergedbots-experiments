@@ -8,6 +8,7 @@ from typing import AsyncGenerator
 
 import discord
 from dotenv import load_dotenv
+from langchain import LLMChain
 from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.schema import ChatMessage
 
@@ -15,6 +16,7 @@ sys.path.append(str(Path(__file__).parents[1]))
 from mergebots import BotMerger, MergedMessage, MergedConversation, MergedBot, FinalBotMessage, InterimBotMessage
 from mergebots.ext.discord_integration import MergedBotDiscord
 from mergebots.ext.langchain_integration import LangChainParagraphStreamingCallback
+from sandbox import active_listener_prompt
 
 load_dotenv()
 
@@ -40,13 +42,12 @@ async def on_ready() -> None:
 
 
 @bot_merger.register_bot("PlainGPT")
-async def therapist_fulfiller(
+async def fulfill_as_plain_gpt(
     bot: MergedBot,
     message: MergedMessage,
     history: MergedConversation,
 ) -> AsyncGenerator[MergedMessage, None]:
-    """A dummy bot that reverses messages and repeats them three times."""
-
+    """A bot that uses either GPT-4 or ChatGPT to generate responses without any hidden prompts."""
     conversation = [msg for msg in itertools.chain(history.messages, (message,)) if msg.is_visible_to_bots]
     if not conversation:
         yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED\n```", is_visible_to_bots=False)
@@ -61,7 +62,7 @@ async def therapist_fulfiller(
         streaming=True,
         callbacks=[paragraph_streaming],
         # TODO user=...,
-        pl_tags=["discord_therapist"],
+        pl_tags=["disc_plain_gpt"],
     )
     async for msg in paragraph_streaming.stream_from_coroutine(
         chat_llm.agenerate(
@@ -79,6 +80,39 @@ async def therapist_fulfiller(
         yield msg
 
 
+@bot_merger.register_bot("ActiveListener")
+async def fulfill_as_active_listener(
+    bot: MergedBot,
+    message: MergedMessage,
+    history: MergedConversation,
+) -> AsyncGenerator[MergedMessage, None]:
+    """A chatbot that acts as an active listener."""
+    conversation = [msg for msg in itertools.chain(history.messages, (message,)) if msg.is_visible_to_bots]
+    if not conversation:
+        yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED\n```", is_visible_to_bots=False)
+        return
+
+    model_name = "gpt-4"
+    yield InterimBotMessage(sender=bot, content=f"`{model_name}`", is_visible_to_bots=False)
+
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=model_name,
+        streaming=True,
+        # TODO user=...,
+        pl_tags=["disc_act_listener"],
+    )
+    llm_chain = LLMChain(
+        llm=chat_llm,
+        prompt=active_listener_prompt.CHAT_PROMPT,
+    )
+
+    formatted_conv_parts = [
+        f"{'PATIENT' if msg.sender.is_human else 'AI THERAPIST'}: {msg.content}" for msg in conversation
+    ]
+    result = await llm_chain.arun(conversation="\n\n".join(formatted_conv_parts))
+    yield FinalBotMessage(sender=bot, content=result)
+
+
 if __name__ == "__main__":
-    MergedBotDiscord(bot_merger, "PlainGPT").attach_discord_client(discord_client)
+    MergedBotDiscord(bot_merger, "ActiveListener").attach_discord_client(discord_client)
     discord_client.run(DISCORD_BOT_SECRET)
