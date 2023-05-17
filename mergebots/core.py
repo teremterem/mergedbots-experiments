@@ -10,13 +10,18 @@ class BotMerger:
     def __init__(self) -> None:
         self._merged_bots = {}
 
-    def register_bot(self, handle: str, name: str, description: str) -> Callable[[FulfillmentFunc], FulfillmentFunc]:
+    def register_bot(
+        self,
+        handle: str,
+        name: str = None,
+        description: str = None,
+    ) -> Callable[[FulfillmentFunc], FulfillmentFunc]:
         """A decorator that registers a fulfillment function as a MergedBot."""
 
         def decorator(fulfillment_func: FulfillmentFunc) -> FulfillmentFunc:
             self._merged_bots[handle] = MergedBot(
                 handle=handle,
-                name=name,
+                name=name or handle,
                 description=description,
                 fulfillment_func=fulfillment_func,
             )

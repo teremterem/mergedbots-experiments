@@ -12,10 +12,9 @@ from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.schema import ChatMessage
 
 sys.path.append(str(Path(__file__).parents[1]))
-from mergebots import BotMerger
-from mergebots.ext.discord_integration import attach_discord_client
+from mergebots import BotMerger, MergedMessage, MergedConversation, MergedBot, FinalBotMessage, InterimBotMessage
+from mergebots.ext.discord_integration import MergedBotDiscord
 from mergebots.ext.langchain_integration import LangChainParagraphStreamingCallback
-from mergebots.models import MergedMessage, MergedConversation, MergedBot, FinalBotMessage, InterimBotMessage
 
 load_dotenv()
 
@@ -40,7 +39,7 @@ async def on_ready() -> None:
     print("Logged in as", discord_client.user)
 
 
-@bot_merger.register_bot("swipy", "Swipy", "")
+@bot_merger.register_bot("PlainGPT")
 async def therapist_fulfiller(
     bot: MergedBot,
     message: MergedMessage,
@@ -50,11 +49,11 @@ async def therapist_fulfiller(
 
     conversation = [msg for msg in itertools.chain(history.messages, (message,)) if msg.is_visible_to_bots]
     if not conversation:
-        yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED 🔄\n```", is_visible_to_bots=False)
+        yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED\n```", is_visible_to_bots=False)
         return
 
     model_name = "gpt-3.5-turbo"
-    yield InterimBotMessage(sender=bot, content=f"```{model_name} ⏳```", is_visible_to_bots=False)
+    yield InterimBotMessage(sender=bot, content=f"`{model_name}`", is_visible_to_bots=False)
 
     paragraph_streaming = LangChainParagraphStreamingCallback(bot)
     chat_llm = PromptLayerChatOpenAI(
@@ -81,5 +80,5 @@ async def therapist_fulfiller(
 
 
 if __name__ == "__main__":
-    attach_discord_client(discord_client, bot_merger, "swipy")
+    MergedBotDiscord(bot_merger, "PlainGPT").attach_discord_client(discord_client)
     discord_client.run(DISCORD_BOT_SECRET)

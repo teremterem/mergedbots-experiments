@@ -64,3 +64,5 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
         # streaming the last paragraph
         await self._msg_queue.put(FinalBotMessage(sender=self._bot, content=self._str_stream.getvalue()))
         self._str_stream.close()
+        # TODO come up with a way to yield all the paragraphs once again for the messaging platform to correct the
+        #  messages if any of the tokens were lost during the streaming

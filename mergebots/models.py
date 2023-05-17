@@ -23,7 +23,7 @@ class MergedBot(MergedParticipant):
     is_human: bool = False
 
     handle: str
-    description: str
+    description: str = None
     fulfillment_func: FulfillmentFunc
 
 
