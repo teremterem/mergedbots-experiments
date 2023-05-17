@@ -6,14 +6,10 @@ from typing import Any, AsyncGenerator
 
 import discord
 
-from mergebots.models import MergedMessage, MergedConversation
-from mergebots.models import MergedUserMessage, MergedUser
 from ..core import BotMerger
 from ..errors import ErrorWrapper
+from ..models import MergedUserMessage, MergedUser, MergedMessage, MergedConversation
 from ..utils import format_error_with_full_tb, get_text_chunks
-
-# TODO turn the content of this module into a class
-
 
 CHANNEL_CONVS: dict[Any, MergedConversation] = defaultdict(MergedConversation)
 MSG_LIMIT = 1900
@@ -73,6 +69,7 @@ async def fulfill_message_with_typing(
     Fulfill a message. Returns a generator that would yield zero or more responses to the message.
     typing_context_manager is a context manager that would be used to indicate that the bot is typing.
     """
+    # TODO make this function a part of BotMerger ?
     response_generator = bot_merger.fulfill_message(
         bot_handle=bot_handle,
         message=message,
@@ -96,9 +93,6 @@ async def fulfill_message_with_typing(
 
 
 _null_context = contextlib.nullcontext()
-
-
-# TODO should attach_discord_client and fulfill_message_with_typing be combined into a class ? DiscordMergedBot ?
 
 
 def escape_discord_markdown(text):
