@@ -4,6 +4,7 @@ import itertools
 import os
 import sys
 from pathlib import Path
+from pprint import pformat
 from typing import AsyncGenerator
 
 import discord
@@ -16,7 +17,7 @@ sys.path.append(str(Path(__file__).parents[1]))
 from mergebots import BotMerger, MergedMessage, MergedConversation, MergedBot, FinalBotMessage, InterimBotMessage
 from mergebots.ext.discord_integration import MergedBotDiscord
 from mergebots.ext.langchain_integration import LangChainParagraphStreamingCallback
-from sandbox import active_listener_prompt
+from sandbox import active_listener_prompt, router_prompt
 
 load_dotenv()
 
@@ -41,7 +42,13 @@ async def on_ready() -> None:
     print("Logged in as", discord_client.user)
 
 
-@bot_merger.register_bot("PlainGPT")
+@bot_merger.register_bot(
+    "PlainGPT",
+    description=(
+        "A bot that uses either GPT-4 or ChatGPT to generate responses. Useful when the user seeks information and "
+        "needs factual answers."
+    ),
+)
 async def fulfill_as_plain_gpt(
     bot: MergedBot,
     message: MergedMessage,
@@ -80,7 +87,10 @@ async def fulfill_as_plain_gpt(
         yield msg
 
 
-@bot_merger.register_bot("ActiveListener")
+@bot_merger.register_bot(
+    "ActiveListener",
+    description="A chatbot that acts as an active listener. Useful when the user needs to vent.",
+)
 async def fulfill_as_active_listener(
     bot: MergedBot,
     message: MergedMessage,
@@ -113,6 +123,37 @@ async def fulfill_as_active_listener(
     yield FinalBotMessage(sender=bot, content=result)
 
 
+@bot_merger.register_bot("RouterBot")
+async def fulfill_as_router_bot(
+    bot: MergedBot,
+    message: MergedMessage,
+    history: MergedConversation,
+) -> AsyncGenerator[MergedMessage, None]:
+    """A bot that routes messages to other bots based on the user's intent."""
+    conversation = [msg for msg in itertools.chain(history.messages, (message,)) if msg.is_visible_to_bots]
+    if not conversation:
+        yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED\n```", is_visible_to_bots=False)
+        return
+
+    chat_llm = PromptLayerChatOpenAI(
+        model_name="gpt-3.5-turbo",
+        temperature=0.0,
+        model_kwargs={"stop": '"'},
+        streaming=True,
+        # TODO user=...,
+        pl_tags=["disc_act_listener"],
+    )
+    llm_chain = LLMChain(
+        llm=chat_llm,
+        prompt=router_prompt.CHAT_PROMPT,
+    )
+
+    bots_json = [{"name": handle, "description": bot.description} for handle, bot in bot_merger.merged_bots.items()]
+    formatted_conv_parts = [f"{'USER' if msg.sender.is_human else 'ASSISTANT'}: {msg.content}" for msg in conversation]
+    chosen_bot_handle = await llm_chain.arun(conversation="\n\n".join(formatted_conv_parts), bots=pformat(bots_json))
+    yield FinalBotMessage(sender=bot, content=f"`{chosen_bot_handle}`", is_visible_to_bots=False)
+
+
 if __name__ == "__main__":
-    MergedBotDiscord(bot_merger, "ActiveListener").attach_discord_client(discord_client)
+    MergedBotDiscord(bot_merger, "RouterBot").attach_discord_client(discord_client)
     discord_client.run(DISCORD_BOT_SECRET)

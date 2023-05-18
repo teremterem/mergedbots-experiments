@@ -1,6 +1,6 @@
 discord.py==2.2.3
 # httpx==0.24.0  # not needed just yet
-langchain==0.0.172
+langchain==0.0.173
 lmql==0.0.6.3  # to play around with
 llama-index==0.6.8  # to play around with
 promptlayer==0.1.81

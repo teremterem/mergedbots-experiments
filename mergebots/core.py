@@ -8,7 +8,7 @@ class BotMerger:
     """A manager of merged bots."""
 
     def __init__(self) -> None:
-        self._merged_bots = {}
+        self.merged_bots = {}
 
     def register_bot(
         self,
@@ -19,7 +19,7 @@ class BotMerger:
         """A decorator that registers a fulfillment function as a MergedBot."""
 
         def decorator(fulfillment_func: FulfillmentFunc) -> FulfillmentFunc:
-            self._merged_bots[handle] = MergedBot(
+            self.merged_bots[handle] = MergedBot(
                 handle=handle,
                 name=name or handle,
                 description=description,
@@ -36,7 +36,7 @@ class BotMerger:
         history: MergedConversation,
     ) -> AsyncGenerator[MergedMessage, None]:
         """Fulfill a message. Returns a generator that would yield zero or more responses to the message."""
-        bot = self._merged_bots[bot_handle]
+        bot = self.merged_bots[bot_handle]
         first_message_appended = False
         async for response in bot.fulfillment_func(bot, message, history):
             if not first_message_appended:
