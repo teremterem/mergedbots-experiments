@@ -107,7 +107,6 @@ async def fulfill_as_active_listener(
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
-        streaming=True,
         # TODO user=...,
         pl_tags=["disc_act_listener"],
     )
