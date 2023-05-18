@@ -1,6 +1,7 @@
 """Integration with the LangChain library."""
 import asyncio
 import io
+import sys
 from typing import AsyncGenerator, Coroutine
 
 from langchain.callbacks.base import AsyncCallbackHandler
@@ -42,7 +43,9 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
 
     async def on_llm_new_token(self, token: str, **kwargs) -> None:
         if self._verbose:
-            print(token, end="")
+            sys.stdout.write(token)
+            sys.stdout.flush()
+
         self._str_stream.write(token)
 
         if not token or token.isspace():
