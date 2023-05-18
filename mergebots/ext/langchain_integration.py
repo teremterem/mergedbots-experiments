@@ -47,7 +47,7 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
             sys.stdout.flush()
 
         self._str_stream.write(token)
-        self._str_stream.flush()
+        self._str_stream.flush()  # TODO does this actually do anything ?
 
         if not token or token.isspace():
             # token is empty, let's wait for a non-empty one (non-empty token would signify that

@@ -67,6 +67,7 @@ async def fulfill_as_plain_gpt(
     paragraph_streaming = LangChainParagraphStreamingCallback(bot, verbose=True)
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
+        temperature=0.0,
         streaming=True,
         callbacks=[paragraph_streaming],
         # TODO user=...,
