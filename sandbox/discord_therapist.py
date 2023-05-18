@@ -162,6 +162,7 @@ async def fulfill_as_router_bot(
     yield InterimBotMessage(sender=bot, content=f"`{chosen_bot_handle}`", is_visible_to_bots=False)
 
     # run the chosen bot
+    # TODO calling the second bot causes the message to appear twice in the history - fix it
     async for msg in bot_merger.fulfill_message(chosen_bot_handle, message, history):
         yield msg
 
