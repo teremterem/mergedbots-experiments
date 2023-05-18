@@ -1,10 +1,10 @@
 # pylint: disable=wrong-import-position
 """A simple Discord bot that reverses messages."""
 import itertools
+import json
 import os
 import sys
 from pathlib import Path
-from pprint import pformat
 from typing import AsyncGenerator
 
 import discord
@@ -139,7 +139,6 @@ async def fulfill_as_router_bot(
         model_name="gpt-3.5-turbo",
         temperature=0.0,
         model_kwargs={"stop": '"'},
-        streaming=True,
         # TODO user=...,
         pl_tags=["disc_act_listener"],
     )
@@ -150,8 +149,15 @@ async def fulfill_as_router_bot(
 
     bots_json = [{"name": handle, "description": bot.description} for handle, bot in bot_merger.merged_bots.items()]
     formatted_conv_parts = [f"{'USER' if msg.sender.is_human else 'ASSISTANT'}: {msg.content}" for msg in conversation]
-    chosen_bot_handle = await llm_chain.arun(conversation="\n\n".join(formatted_conv_parts), bots=pformat(bots_json))
+
+    chosen_bot_handle = await llm_chain.arun(
+        conversation="\n\n".join(formatted_conv_parts), bots=json.dumps(bots_json)
+    )
     yield FinalBotMessage(sender=bot, content=f"`{chosen_bot_handle}`", is_visible_to_bots=False)
+
+    # run the chosen bot
+    async for msg in bot_merger.fulfill_message(chosen_bot_handle, message, history):
+        yield msg
 
 
 if __name__ == "__main__":

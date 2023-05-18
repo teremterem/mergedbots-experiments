@@ -10,7 +10,7 @@ SYS_MSG_PROMPT3 = SystemMessagePromptTemplate.from_template(SYS_TEMPLATE3)
 SYS_TEMPLATE4 = "{bots}"
 SYS_MSG_PROMPT4 = SystemMessagePromptTemplate.from_template(SYS_TEMPLATE4)
 USER_TEMPLATE = """\
-Which of the bots above would you like to use to respond to the latest user message from the conversation above?
+Which of the bots above would you like to use to respond to the LAST message of the conversation above?
 
 BOT NAME: \""""
 USER_MSG_PROMPT = HumanMessagePromptTemplate.from_template(USER_TEMPLATE)
