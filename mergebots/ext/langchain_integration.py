@@ -62,11 +62,15 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
 
         split_idx = text_so_far.rfind("\n\n")
         if split_idx != -1:
-            await self._msg_queue.put(InterimBotMessage(sender=self._bot, content=text_so_far[:split_idx]))
             self._str_stream.close()
             self._str_stream = io.StringIO(text_so_far[split_idx + 2 :])
+            await self._msg_queue.put(InterimBotMessage(sender=self._bot, content=text_so_far[:split_idx]))
 
     async def on_llm_end(self, *args, **kwargs) -> None:  # pylint: disable=unused-argument
+        if self._verbose:
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+
         # streaming the last paragraph
         await self._msg_queue.put(FinalBotMessage(sender=self._bot, content=self._str_stream.getvalue()))
         self._str_stream.close()
