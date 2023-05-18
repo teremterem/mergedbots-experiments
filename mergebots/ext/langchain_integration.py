@@ -14,10 +14,11 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
     A callback handler that splits the output into paragraphs and dispatches each paragraph as a separate message.
     """
 
-    def __init__(self, bot: MergedBot) -> None:
+    def __init__(self, bot: MergedBot, verbose: bool = False) -> None:
         self._bot = bot
         self._str_stream = io.StringIO()
         self._msg_queue: asyncio.Queue[MergedMessage | Exception] = asyncio.Queue(maxsize=64)
+        self._verbose = verbose
 
     async def stream_from_coroutine(self, coro: Coroutine) -> AsyncGenerator[MergedMessage, None]:
         """
@@ -40,6 +41,8 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
             yield msg
 
     async def on_llm_new_token(self, token: str, **kwargs) -> None:
+        if self._verbose:
+            print(token, end="")
         self._str_stream.write(token)
 
         if not token or token.isspace():

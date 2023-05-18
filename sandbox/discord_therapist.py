@@ -63,7 +63,8 @@ async def fulfill_as_plain_gpt(
     model_name = "gpt-3.5-turbo"
     yield InterimBotMessage(sender=bot, content=f"`{model_name}`", is_visible_to_bots=False)
 
-    paragraph_streaming = LangChainParagraphStreamingCallback(bot)
+    print()
+    paragraph_streaming = LangChainParagraphStreamingCallback(bot, verbose=True)
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
         streaming=True,
@@ -85,6 +86,7 @@ async def fulfill_as_plain_gpt(
         )
     ):
         yield msg
+    print()
 
 
 @bot_merger.register_bot(
