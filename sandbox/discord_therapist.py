@@ -147,13 +147,17 @@ async def fulfill_as_router_bot(
         prompt=router_prompt.CHAT_PROMPT,
     )
 
-    bots_json = [{"name": handle, "description": bot.description} for handle, bot in bot_merger.merged_bots.items()]
+    bots_json = [
+        {"name": handle, "description": bot.description}
+        for handle, bot in bot_merger.merged_bots.items()
+        if handle != "RouterBot"
+    ]
     formatted_conv_parts = [f"{'USER' if msg.sender.is_human else 'ASSISTANT'}: {msg.content}" for msg in conversation]
 
     chosen_bot_handle = await llm_chain.arun(
         conversation="\n\n".join(formatted_conv_parts), bots=json.dumps(bots_json)
     )
-    yield FinalBotMessage(sender=bot, content=f"`{chosen_bot_handle}`", is_visible_to_bots=False)
+    yield InterimBotMessage(sender=bot, content=f"`{chosen_bot_handle}`", is_visible_to_bots=False)
 
     # run the chosen bot
     async for msg in bot_merger.fulfill_message(chosen_bot_handle, message, history):
