@@ -69,7 +69,7 @@ async def fulfill_as_plain_gpt(
         streaming=True,
         callbacks=[paragraph_streaming],
         # TODO user=...,
-        pl_tags=["disc_plain_gpt"],
+        pl_tags=["mb_plain_gpt"],
     )
     async for msg in paragraph_streaming.stream_from_coroutine(
         chat_llm.agenerate(
@@ -108,7 +108,7 @@ async def fulfill_as_active_listener(
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
         # TODO user=...,
-        pl_tags=["disc_act_listener"],
+        pl_tags=["mb_active_listener"],
     )
     llm_chain = LLMChain(
         llm=chat_llm,
@@ -139,7 +139,7 @@ async def fulfill_as_router_bot(
         temperature=0.0,
         model_kwargs={"stop": '"'},
         # TODO user=...,
-        pl_tags=["disc_act_listener"],
+        pl_tags=["mb_router"],
     )
     llm_chain = LLMChain(
         llm=chat_llm,
