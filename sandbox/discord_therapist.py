@@ -24,6 +24,9 @@ DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 PATIENT = "PATIENT"
 AI_THERAPIST = "AI THERAPIST"
 
+FAST_GPT_MODEL = "gpt-3.5-turbo"
+SLOW_GPT_MODEL = "gpt-4"
+
 bot_merger = BotMerger()
 discord_client = discord.Client(intents=discord.Intents.default())
 
@@ -51,7 +54,7 @@ async def plain_gpt(
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
-    model_name = "gpt-3.5-turbo"
+    model_name = SLOW_GPT_MODEL
     yield message.service_followup_for_user(bot, f"`{model_name}`")
 
     print()
@@ -95,7 +98,7 @@ async def active_listener(
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
-    model_name = "gpt-4"
+    model_name = SLOW_GPT_MODEL
     yield message.service_followup_for_user(bot, f"`{model_name}`")
 
     chat_llm = PromptLayerChatOpenAI(
@@ -130,10 +133,10 @@ async def router_bot(
         return
 
     chat_llm = PromptLayerChatOpenAI(
-        model_name="gpt-3.5-turbo",
+        model_name=FAST_GPT_MODEL,
         temperature=0.0,
         model_kwargs={
-            "stop": ['"'],
+            "stop": ['"', "\n"],
             "user": str(message.originator.uuid),
         },
         pl_tags=["mb_router"],
@@ -158,7 +161,11 @@ async def router_bot(
     yield message.service_followup_for_user(bot, f"`{chosen_bot_handle}`")
 
     # run the chosen bot
-    async for msg in bot_merger.fulfill_message(chosen_bot_handle, message):
+    async for msg in bot_merger.fulfill_message(
+        chosen_bot_handle,
+        message,
+        fallback_bot_handle="PlainGPT",
+    ):
         yield msg
 
 

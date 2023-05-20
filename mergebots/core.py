@@ -29,8 +29,19 @@ class BotMerger:
 
         return decorator
 
-    async def fulfill_message(self, bot_handle: str, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+    async def fulfill_message(
+        self,
+        bot_handle: str,
+        message: MergedMessage,
+        fallback_bot_handle: str = None,
+    ) -> AsyncGenerator[MergedMessage, None]:
         """Fulfill a message. Returns a generator that would yield zero or more responses to the message."""
-        bot = self.merged_bots[bot_handle]
+        try:
+            bot = self.merged_bots[bot_handle]
+        except KeyError:
+            if not fallback_bot_handle:
+                raise
+            bot = self.merged_bots[fallback_bot_handle]
+
         async for response in bot.fulfillment_func(bot, message):
             yield response
