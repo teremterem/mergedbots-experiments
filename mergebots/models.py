@@ -56,6 +56,8 @@ class MergedMessage(BaseModel):
             if include_invisible_to_bots or msg.is_visible_to_bots:
                 conversation.append(msg)
             msg = msg.previous_msg
+
+        conversation.reverse()
         return conversation
 
     def bot_response(
