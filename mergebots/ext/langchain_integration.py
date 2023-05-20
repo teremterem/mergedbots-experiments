@@ -48,7 +48,11 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
             msg = await self._msg_queue.get()
             if isinstance(msg, Exception):
                 raise ErrorWrapper(error=msg)
+
             yield msg
+
+            if not msg.is_still_typing:
+                break
 
     async def on_llm_new_token(self, token: str, **kwargs) -> None:
         if self._verbose:
