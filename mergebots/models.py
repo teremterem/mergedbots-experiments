@@ -9,16 +9,24 @@ from pydantic import BaseModel, PrivateAttr, Field, UUID4
 FulfillmentFunc = Callable[["MergedBot", "MergedMessage"], AsyncGenerator["MergedMessage", None]]
 
 
-# TODO is it possible to freeze certain model fields upon creation (as opposed to all fields) ?
-
-
-class BaseMergedModel(BaseModel):
+class MergedBase(BaseModel):
     """Base class for all MergeBots models."""
 
     uuid: UUID4 = Field(default_factory=uuid4)
 
+    def __eq__(self, other: object) -> bool:
+        """Check if two models represent the same concept."""
+        if not isinstance(other, MergedBase):
+            return False
+        return self.uuid == other.uuid
 
-class MergedParticipant(BaseMergedModel):
+    def __hash__(self) -> int:
+        """Get the hash of the model's uuid."""
+        # TODO are we sure we don't want to keep these models non-hashable (pydantic default) ?
+        return hash(self.uuid)
+
+
+class MergedParticipant(MergedBase):
     """A chat participant."""
 
     name: str
@@ -41,7 +49,7 @@ class MergedUser(MergedParticipant):
     is_human: bool = True
 
 
-class MergedMessage(BaseMergedModel):
+class MergedMessage(MergedBase):
     """A message that can be sent by a bot or a user."""
 
     previous_msg: "MergedMessage | None"
