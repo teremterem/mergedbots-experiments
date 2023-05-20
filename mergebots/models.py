@@ -2,8 +2,9 @@
 """Pydantic models of MergeBots library."""
 from collections import defaultdict
 from typing import Callable, AsyncGenerator
+from uuid import uuid4
 
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, Field, UUID4
 
 FulfillmentFunc = Callable[["MergedBot", "MergedMessage"], AsyncGenerator["MergedMessage", None]]
 
@@ -11,7 +12,13 @@ FulfillmentFunc = Callable[["MergedBot", "MergedMessage"], AsyncGenerator["Merge
 # TODO is it possible to freeze certain model fields upon creation (as opposed to all fields) ?
 
 
-class MergedParticipant(BaseModel):
+class BaseMergedModel(BaseModel):
+    """Base class for all MergeBots models."""
+
+    uuid: UUID4 = Field(default_factory=uuid4)
+
+
+class MergedParticipant(BaseMergedModel):
     """A chat participant."""
 
     name: str
@@ -34,7 +41,7 @@ class MergedUser(MergedParticipant):
     is_human: bool = True
 
 
-class MergedMessage(BaseModel):
+class MergedMessage(BaseMergedModel):
     """A message that can be sent by a bot or a user."""
 
     previous_msg: "MergedMessage | None"
@@ -44,6 +51,7 @@ class MergedMessage(BaseModel):
     content: str
     is_still_typing: bool
     is_visible_to_bots: bool
+    original_initiator: MergedParticipant
 
     _responses: list["MergedMessage"] = PrivateAttr(default_factory=list)
     _responses_by_bots: dict[str, list["MergedMessage"]] = PrivateAttr(default_factory=lambda: defaultdict(list))
@@ -76,10 +84,11 @@ class MergedMessage(BaseModel):
             content=content,
             is_still_typing=is_still_typing,
             is_visible_to_bots=is_visible_to_bots,
+            original_initiator=self.original_initiator,
         )
         self._responses.append(response_msg)
         # TODO what if message processing failed and bot response list is not complete ?
-        #  we need to a flag to indicate that the bot response list is complete
+        #  we need a flag to indicate that the bot response list is complete
         self._responses_by_bots[bot.handle].append(response_msg)
         return response_msg
 

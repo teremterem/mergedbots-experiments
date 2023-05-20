@@ -20,7 +20,9 @@ class MergedBotDiscord:
         self._bot_merger = bot_merger
         self._merged_bot_handle = merged_bot_handle
 
+        # TODO turn these dicts into DiscordBackend, LocalDiscordBackend, RedisDiscordBackend, etc.
         self._channel_conv_tails: dict[int, MergedMessage | None] = {}
+        self._users: dict[int, MergedUser] = {}
 
     def attach_discord_client(self, discord_client: discord.Client) -> None:
         """Attach a Discord client to a merged bot by its handle."""
@@ -32,7 +34,11 @@ class MergedBotDiscord:
                 return
 
             try:
-                merged_user = MergedUser(name=discord_message.author.name)  # TODO is it worth caching these objects ?
+                merged_user = self._users.get(discord_message.author.id)
+                if not merged_user:
+                    merged_user = MergedUser(name=discord_message.author.name)
+                    self._users[discord_message.author.id] = merged_user
+
                 message_visible_to_bots = True
                 if discord_message.content.startswith("!"):
                     # any prefix command just starts a new conversation for now
@@ -50,6 +56,7 @@ class MergedBotDiscord:
                     content=discord_message.content,
                     is_still_typing=False,
                     is_visible_to_bots=message_visible_to_bots,
+                    original_initiator=merged_user,
                 )
                 self._channel_conv_tails[discord_message.channel.id] = user_message
 
