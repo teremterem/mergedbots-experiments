@@ -2,6 +2,7 @@
 import asyncio
 import io
 import sys
+import threading
 from typing import AsyncGenerator, Coroutine
 
 from langchain.callbacks.base import AsyncCallbackHandler
@@ -15,12 +16,19 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
     A callback handler that splits the output into paragraphs and dispatches each paragraph as a separate message.
     """
 
+    # TODO move all the heavy lifting (writing to StringIO and paragraph splitting) from on_llm_new_token() and
+    #  on_llm_end() to stream_from_coroutine() ?
+
     def __init__(self, bot: MergedBot, message: MergedMessage, verbose: bool = False) -> None:
         self._bot = bot
         self._message = message
-        self._str_stream = io.StringIO()
-        self._msg_queue: asyncio.Queue[MergedMessage | Exception] = asyncio.Queue(maxsize=64)
         self._verbose = verbose
+
+        self._str_io = io.StringIO()
+        self._msg_queue: asyncio.Queue[MergedMessage | Exception] = asyncio.Queue()
+
+        # I have a feeling that LangChain triggers callbacks from a multithreaded environment
+        self._threading_lock = threading.Lock()
 
     async def stream_from_coroutine(self, coro: Coroutine) -> AsyncGenerator[MergedMessage, None]:
         """
@@ -47,34 +55,32 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
             sys.stdout.write(token)
             sys.stdout.flush()
 
-        self._str_stream.write(token)
-        self._str_stream.flush()  # TODO does this actually do anything ?
+        with self._threading_lock:
+            self._str_io.write(token)
 
-        if not token or token.isspace():
-            # token is empty, let's wait for a non-empty one (non-empty token would signify that
-            # the previous message, if any, is not the last one just yet)
-            return
+            if not token or token.isspace():
+                # token is empty, let's wait for a non-empty one (non-empty token would signify that
+                # the previous paragraph, if any, is not the last one just yet)
+                return
 
-        text_so_far = self._str_stream.getvalue()
+            text_so_far = self._str_io.getvalue()
 
-        inside_code_block = (text_so_far.count("```") % 2) == 1
-        if inside_code_block:
-            # we don't want to split a code block
-            return
+            inside_code_block = (text_so_far.count("```") % 2) == 1
+            if inside_code_block:
+                # we don't want to split a code block
+                return
 
-        split_idx = text_so_far.rfind("\n\n")
-        if split_idx != -1:
-            self._str_stream.close()
-            self._str_stream = io.StringIO(text_so_far[split_idx + 2 :])
-            await self._msg_queue.put(self._message.interim_bot_response(self._bot, text_so_far[:split_idx]))
+            split_idx = text_so_far.rfind("\n\n")
+            if split_idx != -1:
+                self._msg_queue.put_nowait(self._message.interim_bot_response(self._bot, text_so_far[:split_idx]))
+                self._str_io = io.StringIO(text_so_far[split_idx + 2 :])
 
     async def on_llm_end(self, *args, **kwargs) -> None:  # pylint: disable=unused-argument
         if self._verbose:
             sys.stdout.write("\n")
             sys.stdout.flush()
 
-        # streaming the last paragraph
-        await self._msg_queue.put(self._message.final_bot_response(self._bot, self._str_stream.getvalue()))
-        self._str_stream.close()
-        # TODO come up with a way to yield all the paragraphs once again for the messaging platform to correct the
-        #  messages if any of the tokens were lost during the streaming
+        with self._threading_lock:
+            # emitting the last paragraph
+            self._msg_queue.put_nowait(self._message.final_bot_response(self._bot, self._str_io.getvalue()))
+            self._str_io = None  # make this callback object unusable
