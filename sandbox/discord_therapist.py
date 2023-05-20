@@ -26,6 +26,12 @@ bot_merger = BotMerger()
 discord_client = discord.Client(intents=discord.Intents.default())
 
 
+@discord_client.event
+async def on_ready() -> None:
+    """Called when the client is done preparing the data received from Discord."""
+    print("Logged in as", discord_client.user)
+
+
 @bot_merger.register_bot(
     "PlainGPT",
     description=(
