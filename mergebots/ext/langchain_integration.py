@@ -17,7 +17,7 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
     """
 
     # TODO move all the heavy lifting (writing to StringIO and paragraph splitting) from on_llm_new_token() and
-    #  on_llm_end() to stream_from_coroutine() ?
+    #  on_llm_end() to stream_from_coroutine() ? (checkout AsyncIteratorCallbackHandler for inspiration)
 
     def __init__(self, bot: MergedBot, message: MergedMessage, verbose: bool = False) -> None:
         self._bot = bot
