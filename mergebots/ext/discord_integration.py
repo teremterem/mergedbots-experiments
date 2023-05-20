@@ -51,6 +51,8 @@ class MergedBotDiscord:
                     is_still_typing=False,
                     is_visible_to_bots=message_visible_to_bots,
                 )
+                self._channel_conv_tails[discord_message.channel.id] = user_message
+
                 async for bot_message in self.fulfill_message_with_typing(
                     message=user_message,
                     typing_context_manager=discord_message.channel.typing(),

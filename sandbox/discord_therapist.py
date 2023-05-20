@@ -94,7 +94,7 @@ async def fulfill_as_active_listener(
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
-    model_name = "gpt-4"
+    model_name = "gpt-3.5-turbo"  # "gpt-4"
     yield message.service_followup_for_user(bot, f"`{model_name}`")
 
     chat_llm = PromptLayerChatOpenAI(
