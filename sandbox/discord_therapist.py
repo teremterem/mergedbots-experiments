@@ -99,7 +99,7 @@ async def fulfill_as_active_listener(
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
         model_kwargs={
-            "stop": ["AI THERAPIST:", "USER:"],
+            "stop": ["AI THERAPIST:", "PATIENT:"],
             "user": str(message.original_initiator.uuid),
         },
         pl_tags=["mb_active_listener"],
