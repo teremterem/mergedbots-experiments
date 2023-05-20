@@ -41,7 +41,7 @@ async def on_ready() -> None:
         "needs factual answers."
     ),
 )
-async def fulfill_as_plain_gpt(
+async def plain_gpt(
     bot: MergedBot,
     message: MergedMessage,
 ) -> AsyncGenerator[MergedMessage, None]:
@@ -85,11 +85,11 @@ async def fulfill_as_plain_gpt(
     "ActiveListener",
     description="A chatbot that acts as an active listener. Useful when the user needs to vent.",
 )
-async def fulfill_as_active_listener(
+async def active_listener(
     bot: MergedBot,
     message: MergedMessage,
 ) -> AsyncGenerator[MergedMessage, None]:
-    """A chatbot that acts as an active listener."""
+    """A bot that acts as an active listener."""
     conversation = message.get_full_conversion()
     if not conversation:
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
@@ -119,7 +119,7 @@ async def fulfill_as_active_listener(
 
 
 @bot_merger.register_bot("RouterBot")
-async def fulfill_as_router_bot(
+async def router_bot(
     bot: MergedBot,
     message: MergedMessage,
 ) -> AsyncGenerator[MergedMessage, None]:
