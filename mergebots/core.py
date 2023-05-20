@@ -8,7 +8,7 @@ class BotMerger:
     """A manager of merged bots."""
 
     def __init__(self) -> None:
-        self.merged_bots = {}
+        self.merged_bots: dict[str, MergedBot] = {}
 
     def register_bot(
         self,

@@ -21,6 +21,8 @@ from sandbox import active_listener_prompt, router_prompt
 load_dotenv()
 
 DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
+PATIENT = "PATIENT"
+AI_THERAPIST = "AI THERAPIST"
 
 bot_merger = BotMerger()
 discord_client = discord.Client(intents=discord.Intents.default())
@@ -59,7 +61,7 @@ async def fulfill_as_plain_gpt(
         temperature=0.0,
         streaming=True,
         callbacks=[paragraph_streaming],
-        model_kwargs={"user": str(message.original_initiator.uuid)},
+        model_kwargs={"user": str(message.originator.uuid)},
         pl_tags=["mb_plain_gpt"],
     )
     async for msg in paragraph_streaming.stream_from_coroutine(
@@ -67,7 +69,7 @@ async def fulfill_as_plain_gpt(
             [
                 [
                     ChatMessage(
-                        role="assistant" if msg.sender == bot else "user",
+                        role="user" if msg.is_sent_by_originator else "assistant",
                         content=msg.content,
                     )
                     for msg in conversation
@@ -93,14 +95,14 @@ async def fulfill_as_active_listener(
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
-    model_name = "gpt-3.5-turbo"  # "gpt-4"
+    model_name = "gpt-4"
     yield message.service_followup_for_user(bot, f"`{model_name}`")
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
         model_kwargs={
-            "stop": ["AI THERAPIST:", "PATIENT:"],
-            "user": str(message.original_initiator.uuid),
+            "stop": [f"\n\n{PATIENT}:", f"\n\n{AI_THERAPIST}:"],
+            "user": str(message.originator.uuid),
         },
         pl_tags=["mb_active_listener"],
     )
@@ -110,7 +112,7 @@ async def fulfill_as_active_listener(
     )
 
     formatted_conv_parts = [
-        f"{'AI THERAPIST' if msg.sender == bot else 'PATIENT'}: {msg.content}" for msg in conversation
+        f"{PATIENT if msg.is_sent_by_originator else AI_THERAPIST}: {msg.content}" for msg in conversation
     ]
     result = await llm_chain.arun(conversation="\n\n".join(formatted_conv_parts))
     yield message.final_bot_response(bot, result)
@@ -132,7 +134,7 @@ async def fulfill_as_router_bot(
         temperature=0.0,
         model_kwargs={
             "stop": ['"'],
-            "user": str(message.original_initiator.uuid),
+            "user": str(message.originator.uuid),
         },
         pl_tags=["mb_router"],
     )
@@ -146,7 +148,9 @@ async def fulfill_as_router_bot(
         for handle, bot in bot_merger.merged_bots.items()
         if handle != "RouterBot"
     ]
-    formatted_conv_parts = [f"{'ASSISTANT' if msg.sender == bot else 'USER'}: {msg.content}" for msg in conversation]
+    formatted_conv_parts = [
+        f"{'USER' if msg.is_sent_by_originator else 'ASSISTANT'}: {msg.content}" for msg in conversation
+    ]
 
     chosen_bot_handle = await llm_chain.arun(
         conversation="\n\n".join(formatted_conv_parts), bots=json.dumps(bots_json)

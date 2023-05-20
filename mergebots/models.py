@@ -52,17 +52,25 @@ class MergedUser(MergedParticipant):
 class MergedMessage(MergedBase):
     """A message that can be sent by a bot or a user."""
 
-    previous_msg: "MergedMessage | None"
-    in_fulfillment_of: "MergedMessage | None"
-
     sender: MergedParticipant
     content: str
     is_still_typing: bool
     is_visible_to_bots: bool
-    original_initiator: MergedParticipant
+
+    originator: MergedParticipant
+    previous_msg: "MergedMessage | None"
+    in_fulfillment_of: "MergedMessage | None"
 
     _responses: list["MergedMessage"] = PrivateAttr(default_factory=list)
     _responses_by_bots: dict[str, list["MergedMessage"]] = PrivateAttr(default_factory=lambda: defaultdict(list))
+
+    @property
+    def is_sent_by_originator(self) -> bool:
+        """
+        Check if this message was sent by the originator of the whole interaction. This will most likely be a user,
+        but in some cases may also be another bot (if the interaction is some sort of "inner dialog" between bots).
+        """
+        return self.sender == self.originator
 
     def get_full_conversion(self, include_invisible_to_bots: bool = False) -> list["MergedMessage"]:
         """Get the full conversation that this message is a part of."""
@@ -92,7 +100,7 @@ class MergedMessage(MergedBase):
             content=content,
             is_still_typing=is_still_typing,
             is_visible_to_bots=is_visible_to_bots,
-            original_initiator=self.original_initiator,
+            originator=self.originator,
         )
         self._responses.append(response_msg)
         # TODO what if message processing failed and bot response list is not complete ?

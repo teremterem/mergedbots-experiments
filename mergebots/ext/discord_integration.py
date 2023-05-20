@@ -56,7 +56,7 @@ class MergedBotDiscord:
                     content=discord_message.content,
                     is_still_typing=False,
                     is_visible_to_bots=message_visible_to_bots,
-                    original_initiator=merged_user,
+                    originator=merged_user,
                 )
                 self._channel_conv_tails[discord_message.channel.id] = user_message
 
