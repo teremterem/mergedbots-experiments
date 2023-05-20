@@ -67,6 +67,7 @@ async def fulfill_as_plain_gpt(
             [
                 [
                     ChatMessage(
+                        # TODO don't use is_human to differentiate between the requestor and the respondee
                         role="user" if msg.sender.is_human else "assistant",
                         content=msg.content,
                     )
@@ -107,7 +108,9 @@ async def fulfill_as_active_listener(
     )
 
     formatted_conv_parts = [
-        f"{'PATIENT' if msg.sender.is_human else 'AI THERAPIST'}: {msg.content}" for msg in conversation
+        # TODO don't use is_human to differentiate between the requestor and the respondee
+        f"{'PATIENT' if msg.sender.is_human else 'AI THERAPIST'}: {msg.content}"
+        for msg in conversation
     ]
     result = await llm_chain.arun(conversation="\n\n".join(formatted_conv_parts))
     yield message.final_bot_response(bot, result)
@@ -141,6 +144,7 @@ async def fulfill_as_router_bot(
         for handle, bot in bot_merger.merged_bots.items()
         if handle != "RouterBot"
     ]
+    # TODO don't use is_human to differentiate between the requestor and the respondee
     formatted_conv_parts = [f"{'USER' if msg.sender.is_human else 'ASSISTANT'}: {msg.content}" for msg in conversation]
 
     chosen_bot_handle = await llm_chain.arun(
