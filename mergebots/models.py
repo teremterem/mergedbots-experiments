@@ -3,7 +3,7 @@
 from collections import defaultdict
 from typing import Callable, AsyncGenerator
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PrivateAttr
 
 FulfillmentFunc = Callable[["MergedBot", "MergedMessage"], AsyncGenerator["MergedMessage", None]]
 
@@ -45,10 +45,8 @@ class MergedMessage(BaseModel):
     is_still_typing: bool
     is_visible_to_bots: bool
 
-    def __init__(self, **data) -> None:
-        super().__init__(**data)
-        self._responses: list["MergedMessage"] = []
-        self._responses_by_bots: dict[str, list["MergedMessage"]] = defaultdict(list)
+    _responses: list["MergedMessage"] = PrivateAttr(default_factory=list)
+    _responses_by_bots: dict[str, list["MergedMessage"]] = PrivateAttr(default_factory=lambda: defaultdict(list))
 
     def get_full_conversion(self, include_invisible_to_bots: bool = False) -> list["MergedMessage"]:
         """Get the full conversation that this message is a part of."""
