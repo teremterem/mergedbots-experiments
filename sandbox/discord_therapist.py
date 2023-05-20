@@ -1,6 +1,5 @@
 # pylint: disable=wrong-import-position
 """A simple Discord bot that reverses messages."""
-import itertools
 import json
 import os
 import sys
@@ -14,7 +13,7 @@ from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.schema import ChatMessage
 
 sys.path.append(str(Path(__file__).parents[1]))
-from mergebots import BotMerger, MergedMessage, MergedConversation, MergedBot, FinalBotMessage, InterimBotMessage
+from mergebots import BotMerger, MergedMessage, MergedBot
 from mergebots.ext.discord_integration import MergedBotDiscord
 from mergebots.ext.langchain_integration import LangChainParagraphStreamingCallback
 from sandbox import active_listener_prompt, router_prompt
@@ -27,21 +26,6 @@ bot_merger = BotMerger()
 discord_client = discord.Client(intents=discord.Intents.default())
 
 
-# tree = app_commands.CommandTree(discord_client)
-
-
-# @tree.command(name="start", description="Reset the dialog 🔄")
-# async def start(ctx):
-#     await ctx.send(content="Hello, World!")
-
-
-@discord_client.event
-async def on_ready() -> None:
-    """Called when the client is done preparing the data received from Discord."""
-    # await tree.sync()
-    print("Logged in as", discord_client.user)
-
-
 @bot_merger.register_bot(
     "PlainGPT",
     description=(
@@ -52,19 +36,18 @@ async def on_ready() -> None:
 async def fulfill_as_plain_gpt(
     bot: MergedBot,
     message: MergedMessage,
-    history: MergedConversation,
 ) -> AsyncGenerator[MergedMessage, None]:
     """A bot that uses either GPT-4 or ChatGPT to generate responses without any hidden prompts."""
-    conversation = [msg for msg in itertools.chain(history.messages, (message,)) if msg.is_visible_to_bots]
+    conversation = message.get_full_conversion()
     if not conversation:
-        yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED\n```", is_visible_to_bots=False)
+        yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
     model_name = "gpt-3.5-turbo"
-    yield InterimBotMessage(sender=bot, content=f"`{model_name}`", is_visible_to_bots=False)
+    yield message.service_followup_for_user(bot, f"`{model_name}`")
 
     print()
-    paragraph_streaming = LangChainParagraphStreamingCallback(bot, verbose=True)
+    paragraph_streaming = LangChainParagraphStreamingCallback(bot, message, verbose=True)
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
         temperature=0.0,
@@ -97,16 +80,15 @@ async def fulfill_as_plain_gpt(
 async def fulfill_as_active_listener(
     bot: MergedBot,
     message: MergedMessage,
-    history: MergedConversation,
 ) -> AsyncGenerator[MergedMessage, None]:
     """A chatbot that acts as an active listener."""
-    conversation = [msg for msg in itertools.chain(history.messages, (message,)) if msg.is_visible_to_bots]
+    conversation = message.get_full_conversion()
     if not conversation:
-        yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED\n```", is_visible_to_bots=False)
+        yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
     model_name = "gpt-4"
-    yield InterimBotMessage(sender=bot, content=f"`{model_name}`", is_visible_to_bots=False)
+    yield message.service_followup_for_user(bot, f"`{model_name}`")
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
@@ -122,19 +104,18 @@ async def fulfill_as_active_listener(
         f"{'PATIENT' if msg.sender.is_human else 'AI THERAPIST'}: {msg.content}" for msg in conversation
     ]
     result = await llm_chain.arun(conversation="\n\n".join(formatted_conv_parts))
-    yield FinalBotMessage(sender=bot, content=result)
+    yield message.final_bot_response(bot, result)
 
 
 @bot_merger.register_bot("RouterBot")
 async def fulfill_as_router_bot(
     bot: MergedBot,
     message: MergedMessage,
-    history: MergedConversation,
 ) -> AsyncGenerator[MergedMessage, None]:
     """A bot that routes messages to other bots based on the user's intent."""
-    conversation = [msg for msg in itertools.chain(history.messages, (message,)) if msg.is_visible_to_bots]
+    conversation = message.get_full_conversion()
     if not conversation:
-        yield FinalBotMessage(sender=bot, content="```\nCONVERSATION RESTARTED\n```", is_visible_to_bots=False)
+        yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
     chat_llm = PromptLayerChatOpenAI(
@@ -159,11 +140,10 @@ async def fulfill_as_router_bot(
     chosen_bot_handle = await llm_chain.arun(
         conversation="\n\n".join(formatted_conv_parts), bots=json.dumps(bots_json)
     )
-    yield InterimBotMessage(sender=bot, content=f"`{chosen_bot_handle}`", is_visible_to_bots=False)
+    yield message.service_followup_for_user(bot, f"`{chosen_bot_handle}`")
 
     # run the chosen bot
-    # TODO calling the second bot causes the message to appear twice in the history - fix it
-    async for msg in bot_merger.fulfill_message(chosen_bot_handle, message, history):
+    async for msg in bot_merger.fulfill_message(chosen_bot_handle, message):
         yield msg
 
 

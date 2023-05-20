@@ -1,13 +1,14 @@
 # pylint: disable=no-name-in-module
 """Pydantic models of MergeBots library."""
+from collections import defaultdict
 from typing import Callable, AsyncGenerator
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-FulfillmentFunc = Callable[["MergedBot", "MergedMessage", "MergedConversation"], AsyncGenerator["MergedMessage", None]]
+FulfillmentFunc = Callable[["MergedBot", "MergedMessage"], AsyncGenerator["MergedMessage", None]]
 
 
-# TODO freeze all models upon instantiation ?
+# TODO is it possible to freeze certain model fields upon creation (as opposed to all fields) ?
 
 
 class MergedParticipant(BaseModel):
@@ -36,41 +37,98 @@ class MergedUser(MergedParticipant):
 class MergedMessage(BaseModel):
     """A message that can be sent by a bot or a user."""
 
+    previous_msg: "MergedMessage | None"
+    in_fulfillment_of: "MergedMessage | None"
+
     sender: MergedParticipant
     content: str
-    is_visible_to_bots: bool = True  # TODO filter such messages out at the level of BotMerger ?
     is_still_typing: bool
+    is_visible_to_bots: bool
 
+    _responses: list["MergedMessage"] = []
+    _responses_by_bots: dict[str, list["MergedMessage"]] = defaultdict(list)
 
-class MergedUserMessage(MergedMessage):
-    """A message that can be sent by a user."""
+    def get_full_conversion(self, include_invisible_to_bots: bool = False) -> list["MergedMessage"]:
+        """Get the full conversation that this message is a part of."""
+        conversation = []
+        msg = self
+        while msg:
+            if include_invisible_to_bots or msg.is_visible_to_bots:
+                conversation.append(msg)
+            msg = msg.previous_msg
+        return conversation
 
-    sender: MergedUser
-    is_still_typing: bool = False
+    def bot_response(
+        self,
+        bot: MergedBot,
+        content: str,
+        is_still_typing: bool,
+        is_visible_to_bots: bool,
+    ) -> "MergedMessage":
+        """Create a bot response to this message."""
+        previous_msg = self._responses[-1] if self._responses else self
+        response_msg = MergedMessage(
+            previous_msg=previous_msg,
+            in_fulfillment_of=self,
+            sender=bot,
+            content=content,
+            is_still_typing=is_still_typing,
+            is_visible_to_bots=is_visible_to_bots,
+        )
+        self._responses.append(response_msg)
+        # TODO what if message processing failed and bot response list is not complete ?
+        #  we need to a flag to indicate that the bot response list is complete
+        self._responses_by_bots[bot.handle].append(response_msg)
+        return response_msg
 
+    def service_followup_for_user(
+        self,
+        bot: MergedBot,
+        content: str,
+    ) -> "MergedMessage":
+        """Create a service followup for the user."""
+        return self.bot_response(
+            bot=bot,
+            content=content,
+            is_still_typing=True,  # it's not the final bot response, more messages are expected
+            is_visible_to_bots=False,  # service followups aren't meant to be interpreted by other bots
+        )
 
-class MergedBotMessage(MergedMessage):
-    """A message that can be sent by a bot."""
+    def service_followup_as_final_response(
+        self,
+        bot: MergedBot,
+        content: str,
+    ) -> "MergedMessage":
+        """Create a service followup as the final response to the user."""
+        return self.bot_response(
+            bot=bot,
+            content=content,
+            is_still_typing=False,
+            is_visible_to_bots=False,  # service followups aren't meant to be interpreted by other bots
+        )
 
-    sender: MergedBot
+    def interim_bot_response(
+        self,
+        bot: MergedBot,
+        content: str,
+    ) -> "MergedMessage":
+        """Create an interim bot response to this message (which means there will be more responses)."""
+        return self.bot_response(
+            bot=bot,
+            content=content,
+            is_still_typing=True,  # there will be more messages
+            is_visible_to_bots=True,
+        )
 
-
-class InterimBotMessage(MergedBotMessage):
-    """
-    An interim message that can be sent by a bot. An interim message indicates that the bot is still typing
-    (there will be more messages).
-    """
-
-    is_still_typing: bool = True
-
-
-class FinalBotMessage(MergedBotMessage):
-    """A final message that can be sent by a bot. A final message indicates that the bot has finished typing."""
-
-    is_still_typing: bool = False
-
-
-class MergedConversation(BaseModel):
-    """A conversation between bots and users."""
-
-    messages: list[MergedMessage] = Field(default_factory=list)
+    def final_bot_response(
+        self,
+        bot: MergedBot,
+        content: str,
+    ) -> "MergedMessage":
+        """Create a final bot response to this message."""
+        return self.bot_response(
+            bot=bot,
+            content=content,
+            is_still_typing=False,
+            is_visible_to_bots=True,
+        )

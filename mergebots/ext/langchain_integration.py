@@ -7,7 +7,7 @@ from typing import AsyncGenerator, Coroutine
 from langchain.callbacks.base import AsyncCallbackHandler
 
 from ..errors import ErrorWrapper
-from ..models import MergedBot, MergedMessage, InterimBotMessage, FinalBotMessage
+from ..models import MergedBot, MergedMessage
 
 
 class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disable=abstract-method
@@ -15,8 +15,9 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
     A callback handler that splits the output into paragraphs and dispatches each paragraph as a separate message.
     """
 
-    def __init__(self, bot: MergedBot, verbose: bool = False) -> None:
+    def __init__(self, bot: MergedBot, message: MergedMessage, verbose: bool = False) -> None:
         self._bot = bot
+        self._message = message
         self._str_stream = io.StringIO()
         self._msg_queue: asyncio.Queue[MergedMessage | Exception] = asyncio.Queue(maxsize=64)
         self._verbose = verbose
@@ -65,7 +66,7 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
         if split_idx != -1:
             self._str_stream.close()
             self._str_stream = io.StringIO(text_so_far[split_idx + 2 :])
-            await self._msg_queue.put(InterimBotMessage(sender=self._bot, content=text_so_far[:split_idx]))
+            await self._msg_queue.put(self._message.interim_bot_response(self._bot, text_so_far[:split_idx]))
 
     async def on_llm_end(self, *args, **kwargs) -> None:  # pylint: disable=unused-argument
         if self._verbose:
@@ -73,7 +74,7 @@ class LangChainParagraphStreamingCallback(AsyncCallbackHandler):  # pylint: disa
             sys.stdout.flush()
 
         # streaming the last paragraph
-        await self._msg_queue.put(FinalBotMessage(sender=self._bot, content=self._str_stream.getvalue()))
+        await self._msg_queue.put(self._message.final_bot_response(self._bot, self._str_stream.getvalue()))
         self._str_stream.close()
         # TODO come up with a way to yield all the paragraphs once again for the messaging platform to correct the
         #  messages if any of the tokens were lost during the streaming
