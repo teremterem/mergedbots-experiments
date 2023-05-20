@@ -59,7 +59,7 @@ async def fulfill_as_plain_gpt(
         temperature=0.0,
         streaming=True,
         callbacks=[paragraph_streaming],
-        user=str(message.original_initiator.uuid),
+        model_kwargs={"user": str(message.original_initiator.uuid)},
         pl_tags=["mb_plain_gpt"],
     )
     async for msg in paragraph_streaming.stream_from_coroutine(
@@ -98,7 +98,10 @@ async def fulfill_as_active_listener(
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
-        user=str(message.original_initiator.uuid),
+        model_kwargs={
+            "stop": ["AI THERAPIST:", "USER:"],
+            "user": str(message.original_initiator.uuid),
+        },
         pl_tags=["mb_active_listener"],
     )
     llm_chain = LLMChain(
@@ -127,8 +130,10 @@ async def fulfill_as_router_bot(
     chat_llm = PromptLayerChatOpenAI(
         model_name="gpt-3.5-turbo",
         temperature=0.0,
-        model_kwargs={"stop": '"'},
-        user=str(message.original_initiator.uuid),
+        model_kwargs={
+            "stop": ['"'],
+            "user": str(message.original_initiator.uuid),
+        },
         pl_tags=["mb_router"],
     )
     llm_chain = LLMChain(
