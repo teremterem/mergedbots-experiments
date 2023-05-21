@@ -4,6 +4,5 @@ langchain==0.0.175
 lmql==0.0.6.3  # to play around with
 llama-index==0.6.9  # to play around with
 promptlayer==0.1.81
-pydantic==1.10.7
 python-dotenv==1.0.0
 # python-socketio[client]==5.8.0  # not needed just yet

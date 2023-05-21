@@ -1,4 +1,4 @@
-# pylint: disable=wrong-import-position
+# pylint: disable=import-error
 """A simple Discord bot that reverses messages."""
 import json
 import os
@@ -13,7 +13,8 @@ from mergedbots import BotMerger, MergedMessage, MergedBot
 from mergedbots.ext.discord_integration import MergedBotDiscord
 from mergedbots.ext.langchain_integration import LangChainParagraphStreamingCallback
 
-from sandbox import active_listener_prompt, router_prompt
+import active_listener_prompt
+import router_prompt
 
 load_dotenv()
 
