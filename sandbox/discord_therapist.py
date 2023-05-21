@@ -96,7 +96,7 @@ async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenera
         return
 
     model_name = SLOW_GPT_MODEL
-    yield message.service_followup_for_user(bot, f"`{model_name}`")
+    yield message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
@@ -149,12 +149,10 @@ async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[M
         f"{'USER' if msg.is_sent_by_originator else 'ASSISTANT'}: {msg.content}" for msg in conversation
     ]
 
+    # choose a bot and run it
     chosen_bot_handle = await llm_chain.arun(
         conversation="\n\n".join(formatted_conv_parts), bots=json.dumps(bots_json)
     )
-    yield message.service_followup_for_user(bot, f"`{chosen_bot_handle}`")
-
-    # run the chosen bot
     chosen_bot = bot_merger.get_bot(chosen_bot_handle, fallback_bot_handle="PlainGPT")
     async for msg in chosen_bot.fulfill(message):
         yield msg
