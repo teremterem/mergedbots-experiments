@@ -22,6 +22,7 @@ discord_client = discord.Client(intents=discord.Intents.default())
 async def on_ready() -> None:
     """Called when the client is done preparing the data received from Discord."""
     print("Logged in as", discord_client.user)
+    print()
 
 
 if __name__ == "__main__":
