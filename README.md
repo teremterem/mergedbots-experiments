@@ -1,1 +1,1 @@
-# 🔀 MergedBots Experiments 🧪
+# 🔀🧪 MergedBots Experiments
