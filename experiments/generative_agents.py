@@ -1,20 +1,18 @@
+import math
 from datetime import datetime, timedelta
 from typing import List
 
+import faiss
 from langchain.chat_models import ChatOpenAI
 from langchain.docstore import InMemoryDocstore
 from langchain.embeddings import OpenAIEmbeddings
+from langchain.experimental.generative_agents import GenerativeAgent, GenerativeAgentMemory
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.vectorstores import FAISS
 from termcolor import colored
 
 USER_NAME = "Person A"  # The name you want to use when interviewing the agent.
 LLM = ChatOpenAI(max_tokens=1500)  # Can be any LLM you want.
-
-from langchain.experimental.generative_agents import GenerativeAgent, GenerativeAgentMemory
-
-import math
-import faiss
 
 
 def relevance_score_fn(score: float) -> float:
@@ -156,7 +154,8 @@ eve = GenerativeAgent(
     llm=LLM,
     daily_summaries=[
         (
-            "Eve started her new job as a career counselor last week and received her first assignment, a client named Tommie."
+            "Eve started her new job as a career counselor last week and received her first assignment, a client "
+            "named Tommie."
         )
     ],
     memory=eves_memory,
@@ -184,7 +183,8 @@ interview_agent(eve, "Tommie is looking to find a job. What are are some things 
 
 interview_agent(
     eve,
-    "You'll have to ask him. He may be a bit anxious, so I'd appreciate it if you keep the conversation going and ask as many questions as possible.",
+    "You'll have to ask him. He may be a bit anxious, so I'd appreciate it if you keep the conversation going and "
+    "ask as many questions as possible.",
 )
 
 
@@ -209,7 +209,8 @@ def run_conversation(agents: List[GenerativeAgent], initial_observation: str) ->
 agents = [tommie, eve]
 run_conversation(
     agents,
-    "Tommie said: Hi, Eve. Thanks for agreeing to meet with me today. I have a bunch of questions and am not sure where to start. Maybe you could first share about your experience?",
+    "Tommie said: Hi, Eve. Thanks for agreeing to meet with me today. I have a bunch of questions and am not sure "
+    "where to start. Maybe you could first share about your experience?",
 )
 
 # We can see a current "Summary" of a character based on their own perception of self
