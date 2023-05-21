@@ -58,8 +58,6 @@ marshmallow==3.19.0
     #   marshmallow-enum
 marshmallow-enum==1.5.1
     # via dataclasses-json
-mergedbots @ file:///Users/terem/Desktop/hobby/mergedbots
-    # via -r requirements.in
 multidict==6.0.4
     # via
     #   aiohttp
