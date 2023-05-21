@@ -13,9 +13,9 @@ from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.schema import ChatMessage
 
 sys.path.append(str(Path(__file__).parents[1]))
-from mergebots import BotMerger, MergedMessage, MergedBot
-from mergebots.ext.discord_integration import MergedBotDiscord
-from mergebots.ext.langchain_integration import LangChainParagraphStreamingCallback
+from mergedbots import BotMerger, MergedMessage, MergedBot
+from mergedbots.ext.discord_integration import MergedBotDiscord
+from mergedbots.ext.langchain_integration import LangChainParagraphStreamingCallback
 from sandbox import active_listener_prompt, router_prompt
 
 load_dotenv()

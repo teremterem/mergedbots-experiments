@@ -33,6 +33,8 @@ frozenlist==1.3.3
     # via
     #   aiohttp
     #   aiosignal
+fsspec==2023.5.0
+    # via llama-index
 future==0.18.3
     # via gpt3-tokenizer
 gpt3-tokenizer==0.1.4
@@ -41,12 +43,12 @@ idna==3.4
     # via
     #   requests
     #   yarl
-langchain==0.0.173
+langchain==0.0.175
     # via
     #   -r requirements.in
     #   llama-index
     #   promptlayer
-llama-index==0.6.8
+llama-index==0.6.9
     # via -r requirements.in
 lmql==0.0.6.3
     # via -r requirements.in
@@ -56,6 +58,8 @@ marshmallow==3.19.0
     #   marshmallow-enum
 marshmallow-enum==1.5.1
     # via dataclasses-json
+mergedbots @ file:///Users/terem/Desktop/hobby/mergedbots
+    # via -r requirements.in
 multidict==6.0.4
     # via
     #   aiohttp
@@ -71,7 +75,7 @@ numpy==1.24.3
     #   lmql
     #   numexpr
     #   pandas
-openai==0.27.6
+openai==0.27.7
     # via
     #   llama-index
     #   lmql
@@ -113,7 +117,7 @@ six==1.16.0
     #   astunparse
     #   gpt3-tokenizer
     #   python-dateutil
-sqlalchemy==2.0.14
+sqlalchemy==2.0.15
     # via langchain
 tenacity==8.2.2
     # via
