@@ -141,9 +141,9 @@ async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[M
     )
 
     bots_json = [
-        {"name": handle, "description": bot.description}
-        for handle, bot in bot_merger.merged_bots.items()
-        if handle != "RouterBot"
+        {"name": other_handle, "description": other_bot.description}
+        for other_handle, other_bot in bot_merger.merged_bots.items()
+        if other_bot.handle != bot.handle
     ]
     formatted_conv_parts = [
         f"{'USER' if msg.is_sent_by_originator else 'ASSISTANT'}: {msg.content}" for msg in conversation
