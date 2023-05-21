@@ -161,5 +161,5 @@ async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[M
 
 
 if __name__ == "__main__":
-    MergedBotDiscord(bot_merger, ROUTER_BOT).attach_discord_client(discord_client)
+    MergedBotDiscord(bot=bot_merger.get_bot(ROUTER_BOT)).attach_discord_client(discord_client)
     discord_client.run(DISCORD_BOT_SECRET)
