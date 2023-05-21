@@ -2,8 +2,6 @@
 """A simple Discord bot that reverses messages."""
 import json
 import os
-import sys
-from pathlib import Path
 from typing import AsyncGenerator
 
 import discord
@@ -11,11 +9,10 @@ from dotenv import load_dotenv
 from langchain import LLMChain
 from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.schema import ChatMessage
-
-sys.path.append(str(Path(__file__).parents[1]))
 from mergedbots import BotMerger, MergedMessage, MergedBot
 from mergedbots.ext.discord_integration import MergedBotDiscord
 from mergedbots.ext.langchain_integration import LangChainParagraphStreamingCallback
+
 from sandbox import active_listener_prompt, router_prompt
 
 load_dotenv()
