@@ -1,9 +1,7 @@
-# pylint: disable=wrong-import-position
+# pylint: disable=import-error
 """A simple Discord bot that reverses messages."""
 import json
 import os
-import sys
-from pathlib import Path
 from typing import AsyncGenerator
 
 import discord
@@ -11,21 +9,26 @@ from dotenv import load_dotenv
 from langchain import LLMChain
 from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.schema import ChatMessage
+from mergedbots import BotMerger, MergedMessage, MergedBot
+from mergedbots.ext.discord_integration import MergedBotDiscord
+from mergedbots.ext.langchain_integration import LangChainParagraphStreamingCallback
 
-sys.path.append(str(Path(__file__).parents[1]))
-from mergebots import BotMerger, MergedMessage, MergedBot
-from mergebots.ext.discord_integration import MergedBotDiscord
-from mergebots.ext.langchain_integration import LangChainParagraphStreamingCallback
-from sandbox import active_listener_prompt, router_prompt
+import active_listener_prompt
+import router_prompt
 
 load_dotenv()
 
-DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
+PLAIN_GPT = "PlainGPT"
+ACTIVE_LISTENER = "ActiveListener"
+ROUTER_BOT = "RouterBot"
+
 PATIENT = "PATIENT"
 AI_THERAPIST = "AI THERAPIST"
 
 FAST_GPT_MODEL = "gpt-3.5-turbo"
-SLOW_GPT_MODEL = "gpt-4"
+SLOW_GPT_MODEL = "gpt-3.5-turbo"  # "gpt-4"
+
+DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 
 bot_merger = BotMerger()
 discord_client = discord.Client(intents=discord.Intents.default())
@@ -38,16 +41,13 @@ async def on_ready() -> None:
 
 
 @bot_merger.register_bot(
-    "PlainGPT",
+    PLAIN_GPT,
     description=(
         "A bot that uses either GPT-4 or ChatGPT to generate responses. Useful when the user seeks information and "
         "needs factual answers."
     ),
 )
-async def plain_gpt(
-    bot: MergedBot,
-    message: MergedMessage,
-) -> AsyncGenerator[MergedMessage, None]:
+async def plain_gpt(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that uses either GPT-4 or ChatGPT to generate responses without any hidden prompts."""
     conversation = message.get_full_conversion()
     if not conversation:
@@ -85,13 +85,10 @@ async def plain_gpt(
 
 
 @bot_merger.register_bot(
-    "ActiveListener",
+    ACTIVE_LISTENER,
     description="A chatbot that acts as an active listener. Useful when the user needs to vent.",
 )
-async def active_listener(
-    bot: MergedBot,
-    message: MergedMessage,
-) -> AsyncGenerator[MergedMessage, None]:
+async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that acts as an active listener."""
     conversation = message.get_full_conversion()
     if not conversation:
@@ -99,7 +96,7 @@ async def active_listener(
         return
 
     model_name = SLOW_GPT_MODEL
-    yield message.service_followup_for_user(bot, f"`{model_name}`")
+    yield message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
@@ -121,11 +118,8 @@ async def active_listener(
     yield message.final_bot_response(bot, result)
 
 
-@bot_merger.register_bot("RouterBot")
-async def router_bot(
-    bot: MergedBot,
-    message: MergedMessage,
-) -> AsyncGenerator[MergedMessage, None]:
+@bot_merger.register_bot(ROUTER_BOT)
+async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that routes messages to other bots based on the user's intent."""
     conversation = message.get_full_conversion()
     if not conversation:
@@ -147,28 +141,23 @@ async def router_bot(
     )
 
     bots_json = [
-        {"name": handle, "description": bot.description}
-        for handle, bot in bot_merger.merged_bots.items()
-        if handle != "RouterBot"
+        {"name": other_handle, "description": other_bot.description}
+        for other_handle, other_bot in bot_merger.merged_bots.items()
+        if other_bot.handle != bot.handle
     ]
     formatted_conv_parts = [
         f"{'USER' if msg.is_sent_by_originator else 'ASSISTANT'}: {msg.content}" for msg in conversation
     ]
 
+    # choose a bot and run it
     chosen_bot_handle = await llm_chain.arun(
         conversation="\n\n".join(formatted_conv_parts), bots=json.dumps(bots_json)
     )
-    yield message.service_followup_for_user(bot, f"`{chosen_bot_handle}`")
-
-    # run the chosen bot
-    async for msg in bot_merger.fulfill_message(
-        chosen_bot_handle,
-        message,
-        fallback_bot_handle="PlainGPT",
-    ):
+    chosen_bot = bot_merger.get_bot(chosen_bot_handle, fallback_bot_handle="PlainGPT")
+    async for msg in chosen_bot.fulfill(message):
         yield msg
 
 
 if __name__ == "__main__":
-    MergedBotDiscord(bot_merger, "RouterBot").attach_discord_client(discord_client)
+    MergedBotDiscord(bot=bot_merger.get_bot(ROUTER_BOT)).attach_discord_client(discord_client)
     discord_client.run(DISCORD_BOT_SECRET)
