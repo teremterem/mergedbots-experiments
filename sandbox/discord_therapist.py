@@ -18,8 +18,6 @@ import router_prompt
 
 load_dotenv()
 
-DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
-
 PLAIN_GPT = "PlainGPT"
 ACTIVE_LISTENER = "ActiveListener"
 ROUTER_BOT = "RouterBot"
@@ -29,6 +27,8 @@ AI_THERAPIST = "AI THERAPIST"
 
 FAST_GPT_MODEL = "gpt-3.5-turbo"
 SLOW_GPT_MODEL = "gpt-3.5-turbo"  # "gpt-4"
+
+DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 
 bot_merger = BotMerger()
 discord_client = discord.Client(intents=discord.Intents.default())
