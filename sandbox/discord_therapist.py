@@ -19,6 +19,11 @@ import router_prompt
 load_dotenv()
 
 DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
+
+PLAIN_GPT = "PlainGPT"
+ACTIVE_LISTENER = "ActiveListener"
+ROUTER_BOT = "RouterBot"
+
 PATIENT = "PATIENT"
 AI_THERAPIST = "AI THERAPIST"
 
@@ -36,16 +41,13 @@ async def on_ready() -> None:
 
 
 @bot_merger.register_bot(
-    "PlainGPT",
+    PLAIN_GPT,
     description=(
         "A bot that uses either GPT-4 or ChatGPT to generate responses. Useful when the user seeks information and "
         "needs factual answers."
     ),
 )
-async def plain_gpt(
-    bot: MergedBot,
-    message: MergedMessage,
-) -> AsyncGenerator[MergedMessage, None]:
+async def plain_gpt(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that uses either GPT-4 or ChatGPT to generate responses without any hidden prompts."""
     conversation = message.get_full_conversion()
     if not conversation:
@@ -83,13 +85,10 @@ async def plain_gpt(
 
 
 @bot_merger.register_bot(
-    "ActiveListener",
+    ACTIVE_LISTENER,
     description="A chatbot that acts as an active listener. Useful when the user needs to vent.",
 )
-async def active_listener(
-    bot: MergedBot,
-    message: MergedMessage,
-) -> AsyncGenerator[MergedMessage, None]:
+async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that acts as an active listener."""
     conversation = message.get_full_conversion()
     if not conversation:
@@ -119,11 +118,8 @@ async def active_listener(
     yield message.final_bot_response(bot, result)
 
 
-@bot_merger.register_bot("RouterBot")
-async def router_bot(
-    bot: MergedBot,
-    message: MergedMessage,
-) -> AsyncGenerator[MergedMessage, None]:
+@bot_merger.register_bot(ROUTER_BOT)
+async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that routes messages to other bots based on the user's intent."""
     conversation = message.get_full_conversion()
     if not conversation:
@@ -159,14 +155,11 @@ async def router_bot(
     yield message.service_followup_for_user(bot, f"`{chosen_bot_handle}`")
 
     # run the chosen bot
-    async for msg in bot_merger.fulfill_message(
-        chosen_bot_handle,
-        message,
-        fallback_bot_handle="PlainGPT",
-    ):
+    chosen_bot = bot_merger.get_bot(chosen_bot_handle, fallback_bot_handle="PlainGPT")
+    async for msg in chosen_bot.fulfill(message):
         yield msg
 
 
 if __name__ == "__main__":
-    MergedBotDiscord(bot_merger, "RouterBot").attach_discord_client(discord_client)
+    MergedBotDiscord(bot_merger, ROUTER_BOT).attach_discord_client(discord_client)
     discord_client.run(DISCORD_BOT_SECRET)
