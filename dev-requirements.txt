@@ -272,6 +272,8 @@ soupsieve==2.4.1
     # via beautifulsoup4
 stack-data==0.6.2
     # via ipython
+termcolor==2.3.0
+    # via -r dev-requirements.in
 terminado==0.17.1
     # via
     #   jupyter-server
