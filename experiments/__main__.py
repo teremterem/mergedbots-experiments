@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from mergedbots.ext.discord_integration import MergedBotDiscord
 
 sys.path.append(str(Path(__file__).parents[1]))
-from experiments.router_bot import router_bot
+from experiments.active_listener import active_listener
 
 load_dotenv()
 
@@ -26,5 +26,5 @@ async def on_ready() -> None:
 
 
 if __name__ == "__main__":
-    MergedBotDiscord(bot=router_bot).attach_discord_client(discord_client)
+    MergedBotDiscord(bot=active_listener).attach_discord_client(discord_client)
     discord_client.run(DISCORD_BOT_SECRET)
