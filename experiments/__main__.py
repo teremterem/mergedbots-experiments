@@ -4,14 +4,15 @@ import os
 import sys
 from pathlib import Path
 
-import discord
 from dotenv import load_dotenv
+
+load_dotenv()
+
+import discord
 from mergedbots.ext.discord_integration import MergedBotDiscord
 
 sys.path.append(str(Path(__file__).parents[1]))
 from experiments.active_listener import active_listener
-
-load_dotenv()
 
 DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 

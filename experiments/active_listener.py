@@ -7,6 +7,7 @@ from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTem
 from mergedbots import MergedMessage, MergedBot
 
 from experiments.common import SLOW_GPT_MODEL
+from experiments.memory_bots import recall_bot, memory_bot
 
 ACTIVE_LISTENER_PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -45,8 +46,11 @@ async def active_listener_func(bot: MergedBot, message: MergedMessage) -> AsyncG
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
+    # async for msg in recall_bot.fulfill(message):
+    #     yield msg
+
     model_name = SLOW_GPT_MODEL
-    yield message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
+    # yield message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
@@ -65,4 +69,10 @@ async def active_listener_func(bot: MergedBot, message: MergedMessage) -> AsyncG
         f"{PATIENT if msg.is_sent_by_originator else AI_THERAPIST}: {msg.content}" for msg in conversation
     ]
     result = await llm_chain.arun(conversation="\n\n".join(formatted_conv_parts))
-    yield message.final_bot_response(bot, result)
+    response = message.final_bot_response(bot, result)
+    yield response
+
+    # async for msg in memory_bot.fulfill(message):
+    #     yield msg
+    # async for msg in memory_bot.fulfill(response):
+    #     yield msg
