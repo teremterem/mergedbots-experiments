@@ -45,7 +45,7 @@ idna==3.4
     # via
     #   requests
     #   yarl
-langchain==0.0.176
+langchain==0.0.177
     # via
     #   -r requirements.in
     #   llama-index
@@ -95,6 +95,8 @@ pydantic==1.10.7
 python-dateutil==2.8.2
     # via pandas
 python-dotenv==1.0.0
+    # via -r requirements.in
+python-magic==0.4.27
     # via -r requirements.in
 pytz==2023.3
     # via pandas

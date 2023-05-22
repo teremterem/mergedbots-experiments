@@ -12,7 +12,7 @@ import discord
 from mergedbots.ext.discord_integration import MergedBotDiscord
 
 sys.path.append(str(Path(__file__).parents[1]))
-from experiments.active_listener import active_listener
+from experiments.repo_inspector.repo_inspector import repo_inspector
 
 DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 
@@ -27,5 +27,5 @@ async def on_ready() -> None:
 
 
 if __name__ == "__main__":
-    MergedBotDiscord(bot=active_listener).attach_discord_client(discord_client)
+    MergedBotDiscord(bot=repo_inspector).attach_discord_client(discord_client)
     discord_client.run(DISCORD_BOT_SECRET)
