@@ -1,6 +1,5 @@
 # pylint: disable=wrong-import-position
 """Main file for running the Discord bot."""
-import asyncio
 import os
 import sys
 from pathlib import Path
@@ -10,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import discord
-from mergedbots import MergedMessage, MergedUser
+from mergedbots.ext.discord_integration import MergedBotDiscord
 
 sys.path.append(str(Path(__file__).parents[1]))
 from experiments.repo_inspector.repo_inspector import repo_inspector
@@ -27,27 +26,27 @@ async def on_ready() -> None:
     print()
 
 
-async def console_chat() -> None:
-    """Chat with the bot in the console."""
-    merged_user = MergedUser(name="User")
-    previous_msg = None
-    while True:
-        user_message = MergedMessage(
-            previous_msg=previous_msg,
-            in_fulfillment_of=None,
-            sender=merged_user,
-            content=input("USER: "),
-            is_still_typing=False,
-            is_visible_to_bots=True,
-            originator=merged_user,
-        )
-        async for message in repo_inspector.fulfill(user_message):
-            previous_msg = message
-            print(f"{repo_inspector.name.upper()}:", message.content)
+# async def console_chat() -> None:
+#     """Chat with the bot in the console."""
+#     merged_user = MergedUser(name="User")
+#     previous_msg = None
+#     while True:
+#         user_message = MergedMessage(
+#             previous_msg=previous_msg,
+#             in_fulfillment_of=None,
+#             sender=merged_user,
+#             content=input("USER: "),
+#             is_still_typing=False,
+#             is_visible_to_bots=True,
+#             originator=merged_user,
+#         )
+#         async for message in repo_inspector.fulfill(user_message):
+#             previous_msg = message
+#             print(f"{repo_inspector.name.upper()}:", message.content)
 
 
 if __name__ == "__main__":
-    # MergedBotDiscord(bot=repo_inspector).attach_discord_client(discord_client)
-    # discord_client.run(DISCORD_BOT_SECRET)
+    MergedBotDiscord(bot=repo_inspector).attach_discord_client(discord_client)
+    discord_client.run(DISCORD_BOT_SECRET)
 
-    asyncio.run(console_chat())
+    # asyncio.run(console_chat())
