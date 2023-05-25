@@ -1,4 +1,3 @@
-import asyncio
 from typing import List, Optional
 
 from langchain.callbacks.manager import CallbackManagerForToolRun, AsyncCallbackManagerForToolRun
@@ -21,7 +20,8 @@ from langchain.schema import (
 )
 from langchain.tools import BaseTool
 from langchain.vectorstores.base import VectorStoreRetriever
-from pydantic import ValidationError, Field
+from mergedbots.experimental.non_event_based import NonEventBasedChatSession
+from pydantic import ValidationError
 
 
 class MergedBotsHumanInputRun(BaseTool):
@@ -33,8 +33,7 @@ class MergedBotsHumanInputRun(BaseTool):
         "got stuck or you are not sure what to do next. "
         "The input should be a question for the human."
     )
-    prompt_queue: asyncio.Queue[str] = Field(default_factory=asyncio.Queue)
-    input_queue: asyncio.Queue[str] = Field(default_factory=asyncio.Queue)
+    session: NonEventBasedChatSession
 
     def _run(
         self,
@@ -50,8 +49,9 @@ class MergedBotsHumanInputRun(BaseTool):
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
         """Use the Human tool asynchronously."""
-        await self.prompt_queue.put(query)
-        return await self.input_queue.get()
+        await self.session.send_message(self.session.current_inbound_msg.final_bot_response(self.session.bot, query))
+        message = await self.session.wait_for_next_message()
+        return message.content
 
 
 class AutoGPT:
@@ -83,17 +83,18 @@ class AutoGPT:
         memory: VectorStoreRetriever,
         tools: List[BaseTool],
         llm: BaseChatModel,
-        human_in_the_loop: bool = False,
+        session: NonEventBasedChatSession = None,
         output_parser: Optional[BaseAutoGPTOutputParser] = None,
     ) -> "AutoGPT":
+        human_feedback_tool = MergedBotsHumanInputRun(session=session) if session else None
+
         prompt = AutoGPTPrompt(
             ai_name=ai_name,
             ai_role=ai_role,
-            tools=tools,
+            tools=[*tools, human_feedback_tool] if human_feedback_tool else tools,
             input_variables=["memory", "messages", "goals", "user_input"],
             token_counter=llm.get_num_tokens,
         )
-        human_feedback_tool = MergedBotsHumanInputRun() if human_in_the_loop else None
         chain = LLMChain(llm=llm, prompt=prompt)
         return cls(
             ai_name,

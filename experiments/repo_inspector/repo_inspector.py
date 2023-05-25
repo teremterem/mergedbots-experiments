@@ -1,8 +1,7 @@
 """A bot that can inspect a repo."""
-import asyncio
 import secrets
 from pathlib import Path
-from typing import AsyncGenerator, Optional
+from typing import Optional
 
 import faiss
 from langchain.callbacks.manager import CallbackManagerForToolRun, AsyncCallbackManagerForToolRun
@@ -13,13 +12,14 @@ from langchain.tools import BaseTool
 from langchain.tools.file_management.read import ReadFileTool
 from langchain.tools.file_management.utils import BaseFileToolMixin
 from langchain.vectorstores import FAISS
-from mergedbots import MergedMessage, MergedBot
+from mergedbots import MergedBot
+from mergedbots.experimental.non_event_based import NonEventBasedMergedBot, NonEventBasedChatSession
 
 from experiments.common import SLOW_GPT_MODEL
 from experiments.repo_inspector.autogpt.agent import AutoGPT
 from experiments.repo_inspector.repo_access_utils import list_files_in_repo
 
-repo_inspector = MergedBot(handle="RepoInspector")
+repo_inspector = NonEventBasedMergedBot(handle="RepoInspector")
 
 
 class ListRepoTool(BaseFileToolMixin, BaseTool):
@@ -50,58 +50,43 @@ class ListRepoTool(BaseFileToolMixin, BaseTool):
         return self._run()
 
 
-autogpt_agent: AutoGPT | None = None  # make it per user
-
-
 @repo_inspector
-async def repo_inspector_func(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+async def repo_inspector_func(bot: MergedBot, session: NonEventBasedChatSession) -> None:
     """A bot that can inspect a repo."""
-    global autogpt_agent
+    # the user just started talking to us - we need to create the agent
+    root_dir = (Path(__file__).parents[3] / "mergedbots").as_posix()
+    tools = [
+        ListRepoTool(root_dir=root_dir),
+        ReadFileTool(root_dir=root_dir),
+    ]
 
-    if autogpt_agent:
-        await autogpt_agent.feedback_tool.prompt_queue.put("STOP_PREVIOUS_HANDLER")  # TODO a temporary hack
-        await autogpt_agent.feedback_tool.input_queue.put(message.content)
+    embeddings_model = OpenAIEmbeddings()
+    embedding_size = 1536
+    index = faiss.IndexFlatL2(embedding_size)
+    vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
 
-    else:
-        # the user just started talking to us - we need to create the agent
-        root_dir = (Path(__file__).parents[3] / "mergedbots").as_posix()
-        tools = [
-            ListRepoTool(root_dir=root_dir),
-            ReadFileTool(root_dir=root_dir),
-        ]
+    model_name = SLOW_GPT_MODEL
 
-        embeddings_model = OpenAIEmbeddings()
-        embedding_size = 1536
-        index = faiss.IndexFlatL2(embedding_size)
-        vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+    message = session.current_inbound_msg
+    await session.send_message(message.service_followup_for_user(bot, f"`{model_name}`"))
 
-        model_name = SLOW_GPT_MODEL
-        yield message.service_followup_for_user(bot, f"`{model_name}`")
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=model_name,
+        model_kwargs={
+            "user": str(message.originator.uuid),
+        },
+        pl_tags=["mb_auto_gpt", secrets.token_hex(4)],
+    )
+    autogpt_agent = AutoGPT.from_llm_and_tools(
+        ai_name="RepoInspector",
+        ai_role="Source code researcher",
+        tools=tools,
+        llm=chat_llm,
+        memory=vectorstore.as_retriever(),
+        session=session,
+    )
+    # Set verbose to be true
+    autogpt_agent.chain.verbose = True
 
-        chat_llm = PromptLayerChatOpenAI(
-            model_name=model_name,
-            model_kwargs={
-                "user": str(message.originator.uuid),
-            },
-            pl_tags=["mb_auto_gpt", secrets.token_hex(4)],
-        )
-        autogpt_agent = AutoGPT.from_llm_and_tools(
-            ai_name="RepoInspector",
-            ai_role="Source code researcher",
-            tools=tools,
-            llm=chat_llm,
-            memory=vectorstore.as_retriever(),
-            human_in_the_loop=True,
-        )
-        # Set verbose to be true
-        autogpt_agent.chain.verbose = True
-
-        # run the agent asynchronously
-        asyncio.create_task(autogpt_agent.arun([message.content]))
-
-    # yield agent's responses (no matter if it's a new agent or an existing one)
-    while True:
-        response = await autogpt_agent.feedback_tool.prompt_queue.get()
-        if response == "STOP_PREVIOUS_HANDLER":  # TODO a temporary hack
-            break
-        yield message.final_bot_response(bot, response)
+    # run the agent asynchronously
+    await autogpt_agent.arun([message.content])
