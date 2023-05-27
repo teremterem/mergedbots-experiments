@@ -18,7 +18,7 @@ plain_gpt = MergedBot(
 
 
 @plain_gpt
-async def plain_gpt_func(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+async def plain_gpt(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that uses either GPT-4 or ChatGPT to generate responses without any hidden prompts."""
     conversation = message.get_full_conversion()
     if not conversation:

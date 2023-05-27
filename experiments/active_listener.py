@@ -6,8 +6,7 @@ from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTemplate, ChatPromptTemplate
 from mergedbots import MergedMessage, MergedBot
 
-from experiments.common import SLOW_GPT_MODEL
-from experiments.memory_bots import recall_bot, memory_bot
+from experiments.common import SLOW_GPT_MODEL, bot_manager
 
 ACTIVE_LISTENER_PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -32,25 +31,23 @@ AI THERAPIST:"""
 PATIENT = "PATIENT"
 AI_THERAPIST = "AI THERAPIST"
 
-active_listener = MergedBot(
+
+@bot_manager.create_bot(
     handle="ActiveListener",
     description="A chatbot that acts as an active listener. Useful when the user needs to vent.",
 )
-
-
-@active_listener
-async def active_listener_func(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that acts as an active listener."""
     conversation = message.get_full_conversion()
     if not conversation:
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
-    # async for msg in recall_bot.fulfill(message):
-    #     yield msg
+    async for msg in recall_bot.fulfill(message):
+        yield msg
 
     model_name = SLOW_GPT_MODEL
-    # yield message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
+    yield message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
@@ -72,7 +69,7 @@ async def active_listener_func(bot: MergedBot, message: MergedMessage) -> AsyncG
     response = message.final_bot_response(bot, result)
     yield response
 
-    # async for msg in memory_bot.fulfill(message):
-    #     yield msg
-    # async for msg in memory_bot.fulfill(response):
-    #     yield msg
+    async for msg in memory_bot.fulfill(message):
+        yield msg
+    async for msg in memory_bot.fulfill(response):
+        yield msg

@@ -33,7 +33,7 @@ other_bots = {bot.handle: bot for bot in (plain_gpt, active_listener)}
 
 
 @router_bot
-async def router_bot_func(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that routes messages to other bots based on the user's intent."""
     conversation = message.get_full_conversion()
     if not conversation:

@@ -51,7 +51,7 @@ class ListRepoTool(BaseFileToolMixin, BaseTool):
 
 
 @repo_inspector
-async def repo_inspector_func(bot: MergedBot, session: NonEventBasedChatSession) -> None:
+async def repo_inspector(bot: MergedBot, session: NonEventBasedChatSession) -> None:
     """A bot that can inspect a repo."""
     # the user just started talking to us - we need to create the agent
     root_dir = (Path(__file__).parents[3] / "mergedbots").as_posix()

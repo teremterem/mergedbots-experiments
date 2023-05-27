@@ -44,7 +44,7 @@ async def on_ready() -> None:
 
 
 if __name__ == "__main__":
-    MergedBotDiscord(bot=active_listener).attach_discord_client(discord_client)
+    MergedBotDiscord(bot=active_listener.merged_bot).attach_discord_client(discord_client)
     discord_client.run(DISCORD_BOT_SECRET)
 
     # asyncio.run(console_chat())
