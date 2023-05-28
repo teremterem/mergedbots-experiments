@@ -65,5 +65,5 @@ async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[M
         conversation="\n\n".join(formatted_conv_parts), bots=json.dumps(bots_json)
     )
     print(f"ROUTING TO: {chosen_bot_handle}")
-    async for msg in bot.manager.fulfill(chosen_bot_handle, message, fallback_bot_handle="blah"):
+    async for msg in bot.manager.fulfill(chosen_bot_handle, message, fallback_bot_handle=plain_gpt.merged_bot.handle):
         yield msg
