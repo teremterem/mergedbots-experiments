@@ -19,11 +19,11 @@ from experiments.common import SLOW_GPT_MODEL, bot_manager
 async def plain_gpt(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that uses either GPT-4 or ChatGPT to generate responses without any hidden prompts."""
     if not message.previous_msg and not message.is_visible_to_bots:
-        yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
+        yield await message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
     model_name = SLOW_GPT_MODEL
-    yield message.service_followup_for_user(bot, f"`{model_name}`")
+    yield await message.service_followup_for_user(bot, f"`{model_name}`")
 
     print()
     paragraph_streaming = LangChainParagraphStreamingCallback(bot, message, verbose=True)

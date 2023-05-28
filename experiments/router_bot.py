@@ -33,7 +33,7 @@ BOT NAME: \""""
 async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that routes messages to other bots based on the user's intent."""
     if not message.previous_msg and not message.is_visible_to_bots:
-        yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
+        yield await message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
     chat_llm = PromptLayerChatOpenAI(
