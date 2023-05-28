@@ -6,22 +6,19 @@ from langchain.schema import ChatMessage
 from mergedbots import MergedMessage, MergedBot
 from mergedbots.ext.langchain_integration import LangChainParagraphStreamingCallback
 
-from experiments.common import SLOW_GPT_MODEL
+from experiments.common import SLOW_GPT_MODEL, bot_manager
 
-plain_gpt = MergedBot(
+
+@bot_manager.create_bot(
     handle="PlainGPT",
     description=(
         "A bot that uses either GPT-4 or ChatGPT to generate responses. Useful when the user seeks information and "
         "needs factual answers."
     ),
 )
-
-
-@plain_gpt
 async def plain_gpt(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that uses either GPT-4 or ChatGPT to generate responses without any hidden prompts."""
-    conversation = message.get_full_conversion()
-    if not conversation:
+    if not message.previous_msg and not message.is_visible_to_bots:
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
@@ -38,6 +35,7 @@ async def plain_gpt(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[Me
         model_kwargs={"user": str(message.originator.uuid)},
         pl_tags=["mb_plain_gpt"],
     )
+    conversation = await message.get_full_conversion()
     async for msg in paragraph_streaming.stream_from_coroutine(
         chat_llm.agenerate(
             [

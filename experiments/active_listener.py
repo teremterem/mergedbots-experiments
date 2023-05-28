@@ -39,8 +39,7 @@ AI_THERAPIST = "AI THERAPIST"
 )
 async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that acts as an active listener."""
-    conversation = await message.get_full_conversion()
-    if not conversation:  # TODO replace with `if not message.previous_msg and not message.is_visible_to_bots:`
+    if not message.previous_msg and not message.is_visible_to_bots:
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
@@ -63,6 +62,7 @@ async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenera
         prompt=ACTIVE_LISTENER_PROMPT,
     )
 
+    conversation = await message.get_full_conversion()
     formatted_conv_parts = [
         f"{PATIENT if msg.is_sent_by_originator else AI_THERAPIST}: {msg.content}" for msg in conversation
     ]
