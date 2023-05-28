@@ -1,10 +1,10 @@
 discord.py==2.2.3
 faiss-cpu==1.7.4
 # httpx==0.24.0  # not needed just yet
-langchain==0.0.177
+langchain==0.0.181
 lmql==0.0.6.3  # to play around with
-llama-index==0.6.9  # to play around with
-promptlayer==0.1.81
+llama-index==0.6.13  # to play around with
+promptlayer==0.1.81  # 0.1.82 is broken (requires Anthropic to be installed for no reason)
 python-dotenv==1.0.0
 python-magic==0.4.27
 # python-socketio[client]==5.8.0  # not needed just yet
