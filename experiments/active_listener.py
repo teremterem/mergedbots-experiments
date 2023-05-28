@@ -48,7 +48,7 @@ async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenera
         yield msg
 
     model_name = SLOW_GPT_MODEL
-    yield message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
+    yield await message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
@@ -67,7 +67,7 @@ async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenera
         f"{PATIENT if msg.is_sent_by_originator else AI_THERAPIST}: {msg.content}" for msg in conversation
     ]
     result = await llm_chain.arun(conversation="\n\n".join(formatted_conv_parts))
-    response = message.final_bot_response(bot, result)
+    response = await message.final_bot_response(bot, result)
     yield response
 
     async for msg in memory_bot.merged_bot.fulfill(message):
