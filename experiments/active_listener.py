@@ -7,6 +7,7 @@ from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTem
 from mergedbots import MergedMessage, MergedBot
 
 from experiments.common import SLOW_GPT_MODEL, bot_manager
+from experiments.memory_bots import recall_bot, memory_bot
 
 ACTIVE_LISTENER_PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -43,7 +44,7 @@ async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenera
         yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
-    async for msg in recall_bot.fulfill(message):
+    async for msg in recall_bot.merged_bot.fulfill(message):
         yield msg
 
     model_name = SLOW_GPT_MODEL
@@ -69,7 +70,7 @@ async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenera
     response = message.final_bot_response(bot, result)
     yield response
 
-    async for msg in memory_bot.fulfill(message):
+    async for msg in memory_bot.merged_bot.fulfill(message):
         yield msg
-    async for msg in memory_bot.fulfill(response):
+    async for msg in memory_bot.merged_bot.fulfill(response):
         yield msg
