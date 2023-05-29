@@ -20,7 +20,8 @@ from langchain.schema import (
 )
 from langchain.tools import BaseTool
 from langchain.vectorstores.base import VectorStoreRetriever
-from mergedbots.experimental.non_event_based import NonEventBasedChatSession
+from mergedbots import MergedMessage, MergedBot
+from mergedbots.experimental.sequential import ConversationSequence
 from pydantic import ValidationError
 
 
@@ -33,7 +34,9 @@ class MergedBotsHumanInputRun(BaseTool):
         "got stuck or you are not sure what to do next. "
         "The input should be a question for the human."
     )
-    session: NonEventBasedChatSession
+    conv_sequence: ConversationSequence
+    current_inbound_msg: MergedMessage
+    bot: MergedBot
 
     def _run(
         self,
@@ -49,9 +52,9 @@ class MergedBotsHumanInputRun(BaseTool):
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
         """Use the Human tool asynchronously."""
-        await self.session.send_message(self.session.current_inbound_msg.final_bot_response(self.session.bot, query))
-        message = await self.session.wait_for_next_message()
-        return message.content
+        await self.conv_sequence.yield_outgoing(await self.current_inbound_msg.final_bot_response(self.bot, query))
+        self.current_inbound_msg = await self.conv_sequence.wait_for_incoming()
+        return self.current_inbound_msg.content
 
 
 class AutoGPT:
@@ -83,11 +86,9 @@ class AutoGPT:
         memory: VectorStoreRetriever,
         tools: List[BaseTool],
         llm: BaseChatModel,
-        session: NonEventBasedChatSession = None,
+        human_feedback_tool: MergedBotsHumanInputRun,
         output_parser: Optional[BaseAutoGPTOutputParser] = None,
     ) -> "AutoGPT":
-        human_feedback_tool = MergedBotsHumanInputRun(session=session) if session else None
-
         prompt = AutoGPTPrompt(
             ai_name=ai_name,
             ai_role=ai_role,

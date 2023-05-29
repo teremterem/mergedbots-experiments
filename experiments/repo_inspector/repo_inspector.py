@@ -13,13 +13,11 @@ from langchain.tools.file_management.read import ReadFileTool
 from langchain.tools.file_management.utils import BaseFileToolMixin
 from langchain.vectorstores import FAISS
 from mergedbots import MergedBot
-from mergedbots.experimental.non_event_based import NonEventBasedMergedBot, NonEventBasedChatSession
+from mergedbots.experimental.sequential import SequentialMergedBotWrapper, ConversationSequence
 
-from experiments.common import SLOW_GPT_MODEL
-from experiments.repo_inspector.autogpt.agent import AutoGPT
+from experiments.common import SLOW_GPT_MODEL, bot_manager
+from experiments.repo_inspector.autogpt.agent import AutoGPT, MergedBotsHumanInputRun
 from experiments.repo_inspector.repo_access_utils import list_files_in_repo
-
-repo_inspector = NonEventBasedMergedBot(handle="RepoInspector")
 
 
 class ListRepoTool(BaseFileToolMixin, BaseTool):
@@ -50,8 +48,8 @@ class ListRepoTool(BaseFileToolMixin, BaseTool):
         return self._run()
 
 
-@repo_inspector
-async def repo_inspector(bot: MergedBot, session: NonEventBasedChatSession) -> None:
+@SequentialMergedBotWrapper(bot_manager.create_bot(handle="RepoInspector"))
+async def repo_inspector(bot: MergedBot, conv_sequence: ConversationSequence) -> None:
     """A bot that can inspect a repo."""
     # the user just started talking to us - we need to create the agent
     root_dir = (Path(__file__).parents[3] / "mergedbots").as_posix()
@@ -67,8 +65,8 @@ async def repo_inspector(bot: MergedBot, session: NonEventBasedChatSession) -> N
 
     model_name = SLOW_GPT_MODEL
 
-    message = session.current_inbound_msg
-    await session.send_message(message.service_followup_for_user(bot, f"`{model_name}`"))
+    message = await conv_sequence.wait_for_incoming()
+    await conv_sequence.yield_outgoing(await message.service_followup_for_user(bot, f"`{model_name}`"))
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
@@ -83,7 +81,11 @@ async def repo_inspector(bot: MergedBot, session: NonEventBasedChatSession) -> N
         tools=tools,
         llm=chat_llm,
         memory=vectorstore.as_retriever(),
-        session=session,
+        human_feedback_tool=MergedBotsHumanInputRun(
+            conv_sequence=conv_sequence,
+            current_inbound_msg=message,
+            bot=bot,
+        ),
     )
     # Set verbose to be true
     autogpt_agent.chain.verbose = True

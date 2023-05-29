@@ -10,7 +10,7 @@ from mergedbots.ext.discord_integration import MergedBotDiscord
 
 load_dotenv()
 sys.path.append(str(Path(__file__).parents[1]))
-from experiments.router_bot import router_bot
+from experiments.repo_inspector.repo_inspector import repo_inspector
 
 DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 
@@ -25,5 +25,5 @@ async def on_ready() -> None:
 
 
 if __name__ == "__main__":
-    MergedBotDiscord(bot=router_bot.merged_bot).attach_discord_client(discord_client)
+    MergedBotDiscord(bot=repo_inspector.merged_bot, discord_client=discord_client)
     discord_client.run(DISCORD_BOT_SECRET)
