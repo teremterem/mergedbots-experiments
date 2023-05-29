@@ -8,7 +8,7 @@ from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTem
 from mergedbots import MergedMessage, MergedBot
 
 from experiments.active_listener import active_listener
-from experiments.common import FAST_GPT_MODEL
+from experiments.common.bot_manager import FAST_GPT_MODEL, bot_manager
 from experiments.plain_gpt import plain_gpt
 
 ROUTER_PROMPT = ChatPromptTemplate.from_messages(
@@ -28,16 +28,12 @@ BOT NAME: \""""
     ]
 )
 
-router_bot = MergedBot(handle="RouterBot")
-other_bots = {bot.handle: bot for bot in (plain_gpt, active_listener)}
 
-
-@router_bot
-async def router_bot_func(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+@bot_manager.create_bot(handle="RouterBot")
+async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that routes messages to other bots based on the user's intent."""
-    conversation = message.get_full_conversion()
-    if not conversation:
-        yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
+    if not message.previous_msg and not message.is_visible_to_bots:
+        yield await message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
     chat_llm = PromptLayerChatOpenAI(
@@ -56,8 +52,10 @@ async def router_bot_func(bot: MergedBot, message: MergedMessage) -> AsyncGenera
     )
 
     bots_json = [
-        {"name": other_handle, "description": other_bot.description} for other_handle, other_bot in other_bots.items()
+        {"name": other_bot.handle, "description": other_bot.description}
+        for other_bot in (plain_gpt.merged_bot, active_listener.merged_bot)
     ]
+    conversation = await message.get_full_conversion()
     formatted_conv_parts = [
         f"{'USER' if msg.is_sent_by_originator else 'ASSISTANT'}: {msg.content}" for msg in conversation
     ]
@@ -67,6 +65,5 @@ async def router_bot_func(bot: MergedBot, message: MergedMessage) -> AsyncGenera
         conversation="\n\n".join(formatted_conv_parts), bots=json.dumps(bots_json)
     )
     print(f"ROUTING TO: {chosen_bot_handle}")
-    chosen_bot = other_bots.get(chosen_bot_handle, plain_gpt)
-    async for msg in chosen_bot.fulfill(message):
+    async for msg in bot.manager.fulfill(chosen_bot_handle, message, fallback_bot_handle=plain_gpt.merged_bot.handle):
         yield msg

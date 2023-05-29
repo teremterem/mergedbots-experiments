@@ -6,7 +6,7 @@ from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTemplate, ChatPromptTemplate
 from mergedbots import MergedMessage, MergedBot
 
-from experiments.common import SLOW_GPT_MODEL
+from experiments.common.bot_manager import SLOW_GPT_MODEL, bot_manager
 from experiments.memory_bots import recall_bot, memory_bot
 
 ACTIVE_LISTENER_PROMPT = ChatPromptTemplate.from_messages(
@@ -32,25 +32,22 @@ AI THERAPIST:"""
 PATIENT = "PATIENT"
 AI_THERAPIST = "AI THERAPIST"
 
-active_listener = MergedBot(
+
+@bot_manager.create_bot(
     handle="ActiveListener",
     description="A chatbot that acts as an active listener. Useful when the user needs to vent.",
 )
-
-
-@active_listener
-async def active_listener_func(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     """A bot that acts as an active listener."""
-    conversation = message.get_full_conversion()
-    if not conversation:
-        yield message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
+    if not message.previous_msg and not message.is_visible_to_bots:
+        yield await message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
-    # async for msg in recall_bot.fulfill(message):
-    #     yield msg
+    async for msg in recall_bot.merged_bot.fulfill(message):
+        yield msg
 
     model_name = SLOW_GPT_MODEL
-    # yield message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
+    yield await message.service_followup_for_user(bot, f"`{model_name} ({bot.handle})`")
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=model_name,
@@ -65,14 +62,15 @@ async def active_listener_func(bot: MergedBot, message: MergedMessage) -> AsyncG
         prompt=ACTIVE_LISTENER_PROMPT,
     )
 
+    conversation = await message.get_full_conversion()
     formatted_conv_parts = [
         f"{PATIENT if msg.is_sent_by_originator else AI_THERAPIST}: {msg.content}" for msg in conversation
     ]
     result = await llm_chain.arun(conversation="\n\n".join(formatted_conv_parts))
-    response = message.final_bot_response(bot, result)
+    response = await message.final_bot_response(bot, result)
     yield response
 
-    # async for msg in memory_bot.fulfill(message):
-    #     yield msg
-    # async for msg in memory_bot.fulfill(response):
-    #     yield msg
+    async for msg in memory_bot.merged_bot.fulfill(message):
+        yield msg
+    async for msg in memory_bot.merged_bot.fulfill(response):
+        yield msg

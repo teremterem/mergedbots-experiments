@@ -11,7 +11,7 @@ from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.schema import Document
 from mergedbots import MergedBot, MergedMessage
 
-from experiments.common import FAST_GPT_MODEL
+from experiments.common.bot_manager import FAST_GPT_MODEL, bot_manager
 
 
 class PatchedTimeWeightedVectorStoreRetriever(TimeWeightedVectorStoreRetriever):
@@ -63,18 +63,15 @@ memory = GenerativeAgentMemory(
     reflection_threshold=8,  # we will give this a relatively low number to show how reflection works
 )
 
-memory_bot = MergedBot(handle="MemoryBot")
-recall_bot = MergedBot(handle="RecallBot")
 
-
-@memory_bot
-async def memory_bot_func(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+@bot_manager.create_bot(handle="MemoryBot")
+async def memory_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     memory.add_memory(f"{message.sender.name.upper()} SAYS: {message.content}")
-    yield message.service_followup_as_final_response(bot, "`MEMORY UPDATED`")
+    yield await message.service_followup_as_final_response(bot, "`MEMORY UPDATED`")
 
 
-@recall_bot
-async def recall_bot_func(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+@bot_manager.create_bot(handle="RecallBot")
+async def recall_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     memory_docs = memory.fetch_memories(f"{message.sender.name.upper()} SAYS: {message.content}")
     for doc in memory_docs:
-        yield message.service_followup_as_final_response(bot, f"```\n{doc.page_content}\n```")
+        yield await message.service_followup_as_final_response(bot, f"```\n{doc.page_content}\n```")
