@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 import magic
+from langchain import tools as lc_tools
 from langchain.callbacks.manager import CallbackManagerForToolRun, AsyncCallbackManagerForToolRun
-from langchain.tools import BaseTool
 from langchain.tools.file_management.utils import BaseFileToolMixin
 from pathspec import pathspec
 
@@ -47,7 +47,7 @@ def _is_text_file(file_path: str | Path):
     return file_mime.startswith("text/") or file_mime.startswith("application/json")
 
 
-class ListRepoTool(BaseFileToolMixin, BaseTool):
+class ListRepoTool(BaseFileToolMixin, lc_tools.BaseTool):
     """Tool that lists all the files in a repo."""
 
     name: str = "list_repo"
@@ -72,3 +72,23 @@ class ListRepoTool(BaseFileToolMixin, BaseTool):
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
         return self._run()
+
+
+class ReadFileTool(lc_tools.ReadFileTool):
+    async def _arun(
+        self,
+        file_path: str,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        return self.run(file_path, run_manager=run_manager)
+
+
+class WriteFileTool(lc_tools.WriteFileTool):
+    async def _arun(
+        self,
+        file_path: str,
+        text: str,
+        append: bool = False,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        return self.run(file_path, text=text, append=append, run_manager=run_manager)

@@ -3,12 +3,12 @@ from pathlib import Path
 
 from langchain.agents import initialize_agent, AgentType
 from langchain.llms import PromptLayerOpenAI
-from langchain.tools import WriteFileTool, ReadFileTool
+from langchain.tools import ReadFileTool
 from mergedbots import MergedBot
 from mergedbots.experimental.sequential import SequentialMergedBotWrapper, ConversationSequence
 
 from experiments.common.bot_manager import SLOW_GPT_MODEL, bot_manager
-from experiments.common.repo_access_utils import ListRepoTool
+from experiments.common.repo_access_utils import ListRepoTool, ReadFileTool, WriteFileTool
 
 
 @SequentialMergedBotWrapper(bot_manager.create_bot(handle="MergedBotsCopilot"))
