@@ -69,7 +69,6 @@ class ListRepoTool(BaseFileToolMixin, BaseTool):
 
     async def _arun(
         self,
-        dir_path: str,
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
         return self._run()
