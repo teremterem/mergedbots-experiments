@@ -11,7 +11,7 @@ from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.schema import Document
 from mergedbots import MergedBot, MergedMessage
 
-from experiments.common import FAST_GPT_MODEL, bot_manager
+from experiments.common.bot_manager import FAST_GPT_MODEL, bot_manager
 
 
 class PatchedTimeWeightedVectorStoreRetriever(TimeWeightedVectorStoreRetriever):

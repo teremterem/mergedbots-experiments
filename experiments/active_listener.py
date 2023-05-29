@@ -6,7 +6,7 @@ from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTemplate, ChatPromptTemplate
 from mergedbots import MergedMessage, MergedBot
 
-from experiments.common import SLOW_GPT_MODEL, bot_manager
+from experiments.common.bot_manager import SLOW_GPT_MODEL, bot_manager
 from experiments.memory_bots import recall_bot, memory_bot
 
 ACTIVE_LISTENER_PROMPT = ChatPromptTemplate.from_messages(

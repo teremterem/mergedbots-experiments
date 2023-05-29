@@ -15,9 +15,9 @@ from langchain.vectorstores import FAISS
 from mergedbots import MergedBot
 from mergedbots.experimental.sequential import SequentialMergedBotWrapper, ConversationSequence
 
-from experiments.common import SLOW_GPT_MODEL, bot_manager
+from experiments.common.bot_manager import SLOW_GPT_MODEL, bot_manager
+from experiments.common.repo_access_utils import list_files_in_repo
 from experiments.repo_inspector.autogpt.agent import AutoGPT, MergedBotsHumanInputRun
-from experiments.repo_inspector.repo_access_utils import list_files_in_repo
 
 
 class ListRepoTool(BaseFileToolMixin, BaseTool):

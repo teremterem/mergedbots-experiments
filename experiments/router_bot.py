@@ -8,7 +8,7 @@ from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTem
 from mergedbots import MergedMessage, MergedBot
 
 from experiments.active_listener import active_listener
-from experiments.common import FAST_GPT_MODEL, bot_manager
+from experiments.common.bot_manager import FAST_GPT_MODEL, bot_manager
 from experiments.plain_gpt import plain_gpt
 
 ROUTER_PROMPT = ChatPromptTemplate.from_messages(

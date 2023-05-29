@@ -6,7 +6,7 @@ from langchain.schema import ChatMessage
 from mergedbots import MergedMessage, MergedBot
 from mergedbots.ext.langchain_integration import LangChainParagraphStreamingCallback
 
-from experiments.common import SLOW_GPT_MODEL, bot_manager
+from experiments.common.bot_manager import SLOW_GPT_MODEL, bot_manager
 
 
 @bot_manager.create_bot(
