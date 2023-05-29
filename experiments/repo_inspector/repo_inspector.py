@@ -1,51 +1,19 @@
 """A bot that can inspect a repo."""
 import secrets
 from pathlib import Path
-from typing import Optional
 
 import faiss
-from langchain.callbacks.manager import CallbackManagerForToolRun, AsyncCallbackManagerForToolRun
 from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.docstore import InMemoryDocstore
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.tools import BaseTool
 from langchain.tools.file_management.read import ReadFileTool
-from langchain.tools.file_management.utils import BaseFileToolMixin
 from langchain.vectorstores import FAISS
 from mergedbots import MergedBot
 from mergedbots.experimental.sequential import SequentialMergedBotWrapper, ConversationSequence
 
 from experiments.common.bot_manager import SLOW_GPT_MODEL, bot_manager
-from experiments.common.repo_access_utils import list_files_in_repo
+from experiments.common.repo_access_utils import ListRepoTool
 from experiments.repo_inspector.autogpt.agent import AutoGPT, MergedBotsHumanInputRun
-
-
-class ListRepoTool(BaseFileToolMixin, BaseTool):
-    """Tool that lists all the files in a repo."""
-
-    name: str = "list_repo"
-    description: str = "List all the files in `%s` repo"
-    repo_name: str = None
-
-    def __init__(self, **data) -> None:
-        super().__init__(**data)
-        if not self.repo_name:
-            self.repo_name = Path(self.root_dir).name
-        self.description = self.description % self.repo_name
-
-    def _run(self, run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
-        file_list: list[Path] = list_files_in_repo(self.root_dir)
-
-        file_list_str = "\n".join([file.as_posix() for file in file_list])
-        result = f"Here is the complete list of files that can be found in `{self.repo_name}` repo:\n{file_list_str}"
-        return result
-
-    async def _arun(
-        self,
-        dir_path: str,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
-    ) -> str:
-        return self._run()
 
 
 @SequentialMergedBotWrapper(bot_manager.create_bot(handle="RepoInspector"))
