@@ -2,7 +2,7 @@ import secrets
 from pathlib import Path
 
 from langchain.agents import initialize_agent, AgentType
-from langchain.llms import PromptLayerOpenAI
+from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.tools import ReadFileTool
 from mergedbots import MergedBot
 from mergedbots.experimental.sequential import SequentialMergedBotWrapper, ConversationSequence
@@ -24,10 +24,8 @@ async def mergedbots_copilot(bot: MergedBot, conv_sequence: ConversationSequence
     message = await conv_sequence.wait_for_incoming()
     await conv_sequence.yield_outgoing(await message.service_followup_for_user(bot, f"`{model_name}`"))
 
-    # TODO chat_llm = PromptLayerChatOpenAI(
-    #          model_name=model_name,
-    chat_llm = PromptLayerOpenAI(
-        model_name="text-davinci-003",
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=model_name,
         temperature=0,
         model_kwargs={
             "user": str(message.originator.uuid),
