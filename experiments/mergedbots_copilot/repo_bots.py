@@ -5,6 +5,7 @@ from langchain import LLMChain
 from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from mergedbots import MergedBot, MergedMessage
+from mergedbots.ext.discord_integration import DISCORD_MSG_LIMIT
 
 from experiments.common.bot_manager import bot_manager, FAST_GPT_MODEL
 from experiments.common.repo_access_utils import list_files_in_repo
@@ -98,17 +99,17 @@ async def read_file_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerato
 async def edit_file_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     read_file_responses = await read_file_bot.bot.list_responses(message)
 
-    file_content_msg = read_file_responses[-1]
-    file_path = None
-    file_content = None
-    if file_content_msg.custom_fields.get("success"):
-        file_path = read_file_responses[-2].content
-        file_content = file_content_msg.content
+    file_path_msg = None
+    file_content_msg = None
+    if read_file_responses[-1].custom_fields.get("success"):
+        file_path_msg = read_file_responses[-2]
+        file_content_msg = read_file_responses[-1]
 
-    if file_content:
-        yield await message.final_bot_response(bot, f"```\n{file_content[:1000]}\n```")
+    if file_content_msg:
+        yield file_path_msg
+        yield await message.final_bot_response(bot, f"```\n{file_content_msg.content[:DISCORD_MSG_LIMIT]}\n```")
     else:
-        yield file_content_msg
+        yield read_file_responses[-1]
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=FAST_GPT_MODEL,
