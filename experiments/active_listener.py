@@ -43,7 +43,7 @@ async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenera
         yield await message.service_followup_as_final_response(bot, "```\nCONVERSATION RESTARTED\n```")
         return
 
-    async for msg in recall_bot.merged_bot.fulfill(message):
+    async for msg in recall_bot.bot.fulfill(message):
         yield msg
 
     model_name = SLOW_GPT_MODEL
@@ -70,7 +70,7 @@ async def active_listener(bot: MergedBot, message: MergedMessage) -> AsyncGenera
     response = await message.final_bot_response(bot, result)
     yield response
 
-    async for msg in memory_bot.merged_bot.fulfill(message):
+    async for msg in memory_bot.bot.fulfill(message):
         yield msg
-    async for msg in memory_bot.merged_bot.fulfill(response):
+    async for msg in memory_bot.bot.fulfill(response):
         yield msg

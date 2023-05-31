@@ -11,7 +11,7 @@ from experiments.common.repo_access_utils import list_files_in_repo
 
 REPO_DIR = Path(__file__).parents[3] / "mergedbots"
 
-# `gpt-3.5-turbo` (unlike `gpt-4`) might pay more attention to `user` messages than `system` messages
+# `gpt-3.5-turbo` (unlike `gpt-4`) might pay more attention to `user` messages than it would to `system` messages
 EXTRACT_FILE_PATH_PROMPT = ChatPromptTemplate.from_messages(
     [
         HumanMessagePromptTemplate.from_template("{file_list}"),
@@ -55,19 +55,12 @@ async def list_repo_tool(bot: MergedBot, message: MergedMessage) -> AsyncGenerat
         f"{file_list_string}\n"
         f"```"
     )
-    yield await message.final_bot_response(
-        bot,
-        result,
-        custom_fields={"file_list": file_list_strings},  # TODO are you sure you need this ?
-    )
+    yield await message.final_bot_response(bot, result, custom_fields={"file_list": file_list_strings})
 
 
 @bot_manager.create_bot(handle="ReadFileBot")
 async def read_file_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
-    # TODO implement bot fulfillment caching
-    # TODO implement a utility function that simply returns the final bot response
-    file_list_msg = [resp async for resp in list_repo_tool.merged_bot.fulfill(message)][-1]
-    # yield file_list_msg  # TODO here is where it would be cool to override `is_still_typing`
+    file_list_msg = (await list_repo_tool.bot.list_responses(message))[-1]
     file_set = set(file_list_msg.custom_fields["file_list"])
 
     chat_llm = PromptLayerChatOpenAI(
@@ -96,6 +89,37 @@ async def read_file_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerato
     else:
         yield await message.final_bot_response(
             bot,
-            "Please specify a file you want to read.",
+            f"{file_list_msg.content}\n" f"Please specify the file you want to read.",
             custom_fields={"success": False},
         )
+
+
+@bot_manager.create_bot(handle="EditFileBot")
+async def edit_file_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+    read_file_responses = await read_file_bot.bot.list_responses(message)
+
+    file_content_msg = read_file_responses[-1]
+    file_path = None
+    file_content = None
+    if file_content_msg.custom_fields.get("success"):
+        file_path = read_file_responses[-2].content
+        file_content = file_content_msg.content
+
+    if file_content:
+        yield await message.final_bot_response(bot, f"```\n{file_content[:1000]}\n```")
+    else:
+        yield file_content_msg
+
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=FAST_GPT_MODEL,
+        temperature=0.0,
+        model_kwargs={
+            "stop": ['"', "\n"],
+            "user": str(message.originator.uuid),
+        },
+        pl_tags=["edit_file_bot"],
+    )
+    # llm_chain = LLMChain(
+    #     llm=chat_llm,
+    #     prompt=...,
+    # )
