@@ -61,7 +61,7 @@ async def list_repo_tool(bot: MergedBot, message: MergedMessage) -> AsyncGenerat
 
 @bot_manager.create_bot(handle="ReadFileBot")
 async def read_file_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
-    file_list_msg = (await list_repo_tool.bot.list_responses(message))[-1]
+    file_list_msg = await list_repo_tool.bot.get_final_response(message)
     file_set = set(file_list_msg.custom_fields["file_list"])
 
     chat_llm = PromptLayerChatOpenAI(
