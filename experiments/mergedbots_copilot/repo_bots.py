@@ -107,7 +107,7 @@ async def edit_file_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerato
 
     if file_content_msg:
         yield file_path_msg
-        yield await message.final_bot_response(bot, f"```\n{file_content_msg.content[:DISCORD_MSG_LIMIT]}\n```")
+        yield await message.final_bot_response(bot, f"```\n{file_content_msg.content[:DISCORD_MSG_LIMIT - 10]}\n```")
     else:
         yield read_file_responses[-1]
 
