@@ -3,7 +3,6 @@ from pathlib import Path
 
 from langchain.agents import initialize_agent, AgentType
 from langchain.chat_models import PromptLayerChatOpenAI
-from langchain.tools import ReadFileTool
 from mergedbots import MergedBot
 from mergedbots.experimental.sequential import SequentialMergedBotWrapper, ConversationSequence
 
@@ -11,8 +10,8 @@ from experiments.common.bot_manager import SLOW_GPT_MODEL, bot_manager
 from experiments.common.repo_access_utils import ListRepoTool, ReadFileTool, WriteFileTool
 
 
-@SequentialMergedBotWrapper(bot_manager.create_bot(handle="MergedBotsCopilot"))
-async def mergedbots_copilot(bot: MergedBot, conv_sequence: ConversationSequence) -> None:
+@SequentialMergedBotWrapper(bot_manager.create_bot(handle="LcAgentExperiments"))
+async def lc_agent_experiments(bot: MergedBot, conv_sequence: ConversationSequence) -> None:
     root_dir = (Path(__file__).parents[3] / "mergedbots").as_posix()
     tools = [
         ListRepoTool(root_dir=root_dir),
@@ -30,7 +29,7 @@ async def mergedbots_copilot(bot: MergedBot, conv_sequence: ConversationSequence
         model_kwargs={
             "user": str(message.originator.uuid),
         },
-        pl_tags=["mb_copilot", secrets.token_hex(4)],
+        pl_tags=["lc_agent_exp", secrets.token_hex(4)],
     )
     react = initialize_agent(tools, chat_llm, agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION)
 
