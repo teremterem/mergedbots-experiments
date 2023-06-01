@@ -137,7 +137,7 @@ class AutoGPT:
 
             # Print Assistant thoughts
             if self.feedback_tool is not None:
-                await self.feedback_tool.send_feedback(assistant_reply)
+                await self.feedback_tool.send_feedback(f"```\n{assistant_reply}\n```")
 
             # TODO replace this history with the mergedbots history ?
             self.full_message_history.append(HumanMessage(content=user_input))
