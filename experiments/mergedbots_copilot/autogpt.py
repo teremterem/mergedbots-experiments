@@ -1,5 +1,5 @@
-from typing import Callable, Optional
 from typing import List
+from typing import Optional
 
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
@@ -24,13 +24,9 @@ from langchain.schema import (
 )
 from langchain.tools.base import BaseTool
 from langchain.vectorstores.base import VectorStoreRetriever
-from pydantic import Field
+from mergedbots import MergedMessage, MergedBot
+from mergedbots.experimental.sequential import ConversationSequence
 from pydantic import ValidationError
-
-
-def _print_func(text: str) -> None:
-    print("\n")
-    print(text)
 
 
 class HumanInputRun(BaseTool):
@@ -42,8 +38,10 @@ class HumanInputRun(BaseTool):
         "got stuck or you are not sure what to do next. "
         "The input should be a question for the human."
     )
-    prompt_func: Callable[[str], None] = Field(default_factory=lambda: _print_func)
-    input_func: Callable = Field(default_factory=lambda: input)
+
+    bot: MergedBot
+    conv_sequence: ConversationSequence
+    latest_inbound_msg: MergedMessage
 
     def _run(
         self,
@@ -51,8 +49,7 @@ class HumanInputRun(BaseTool):
         run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> str:
         """Use the Human input tool."""
-        self.prompt_func(query)
-        return self.input_func()
+        raise NotImplementedError("`MergedBots` human tool does not support synchronous mode")
 
     async def _arun(
         self,
@@ -60,7 +57,17 @@ class HumanInputRun(BaseTool):
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
         """Use the Human tool asynchronously."""
-        raise NotImplementedError("Human tool does not support async")
+        await self.send_feedback(query)
+        self.latest_inbound_msg = await self.conv_sequence.wait_for_incoming()
+        return self.latest_inbound_msg.content
+
+    async def send_feedback(self, feedback: str, is_still_typing=True) -> None:
+        """Send a message to the user."""
+        await self.conv_sequence.yield_outgoing(
+            await self.latest_inbound_msg.bot_response(
+                self.bot, feedback, is_still_typing=is_still_typing, is_visible_to_bots=True
+            )
+        )
 
 
 class AutoGPT:
@@ -92,7 +99,7 @@ class AutoGPT:
         memory: VectorStoreRetriever,
         tools: List[BaseTool],
         llm: BaseChatModel,
-        human_in_the_loop: bool = False,
+        feedback_tool: Optional[HumanInputRun] = None,
         output_parser: Optional[BaseAutoGPTOutputParser] = None,
     ) -> "AutoGPT":
         prompt = AutoGPTPrompt(
@@ -102,7 +109,6 @@ class AutoGPT:
             input_variables=["memory", "messages", "goals", "user_input"],
             token_counter=llm.get_num_tokens,
         )
-        human_feedback_tool = HumanInputRun() if human_in_the_loop else None
         chain = LLMChain(llm=llm, prompt=prompt)
         return cls(
             ai_name,
@@ -110,10 +116,10 @@ class AutoGPT:
             chain,
             output_parser or AutoGPTOutputParser(),
             tools,
-            feedback_tool=human_feedback_tool,
+            feedback_tool=feedback_tool,
         )
 
-    def run(self, goals: List[str]) -> str:
+    async def arun(self, goals: List[str]) -> str:
         user_input = "Determine which next command to use, " "and respond using the format specified above:"
         # Interaction Loop
         loop_count = 0
@@ -122,7 +128,7 @@ class AutoGPT:
             loop_count += 1
 
             # Send message to AI, get response
-            assistant_reply = self.chain.run(
+            assistant_reply = await self.chain.arun(
                 goals=goals,
                 messages=self.full_message_history,
                 memory=self.memory,
@@ -130,7 +136,10 @@ class AutoGPT:
             )
 
             # Print Assistant thoughts
-            print(assistant_reply)
+            if self.feedback_tool is not None:
+                await self.feedback_tool.send_feedback(assistant_reply)
+
+            # TODO replace this history with the mergedbots history ?
             self.full_message_history.append(HumanMessage(content=user_input))
             self.full_message_history.append(AIMessage(content=assistant_reply))
 
@@ -142,7 +151,7 @@ class AutoGPT:
             if action.name in tools:
                 tool = tools[action.name]
                 try:
-                    observation = tool.run(action.args)
+                    observation = await tool.arun(action.args)
                 except ValidationError as e:
                     observation = f"Validation Error in args: {str(e)}, args: {action.args}"
                 except Exception as e:
@@ -159,11 +168,16 @@ class AutoGPT:
 
             memory_to_add = f"Assistant Reply: {assistant_reply} " f"\nResult: {result} "
             if self.feedback_tool is not None:
-                feedback = f"\n{self.feedback_tool.run('Input: ')}"
+                feedback = await self.feedback_tool.arun("Input: ")
                 if feedback in {"q", "stop"}:
-                    print("EXITING")
+                    await self.feedback_tool.conv_sequence.yield_outgoing(
+                        await self.feedback_tool.latest_inbound_msg.final_bot_response(
+                            self.feedback_tool.bot, assistant_reply
+                        )
+                    )
+                    await self.feedback_tool.send_feedback("EXITING")
                     return "EXITING"
-                memory_to_add += feedback
+                memory_to_add += f"\n{feedback}"
 
             self.memory.add_documents([Document(page_content=memory_to_add)])
             self.full_message_history.append(SystemMessage(content=result))
