@@ -1,12 +1,17 @@
 """A bot that can inspect a repo."""
 import re
+import secrets
 
-from langchain import LLMChain
+import faiss
+from langchain import LLMChain, FAISS, InMemoryDocstore
 from langchain.chat_models import PromptLayerChatOpenAI
+from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import HumanMessagePromptTemplate, SystemMessagePromptTemplate, ChatPromptTemplate
 from mergedbots import MergedBot, MergedMessage
+from mergedbots.experimental.sequential import SequentialMergedBotWrapper, ConversationSequence
 
-from experiments.common.bot_manager import bot_manager, FAST_GPT_MODEL
+from experiments.common.bot_manager import bot_manager, FAST_GPT_MODEL, SLOW_GPT_MODEL
+from experiments.mergedbots_copilot.autogpt import AutoGPT, HumanInputRun
 
 AICONFIG_PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -82,3 +87,43 @@ async def autogpt_aiconfig(bot: MergedBot, message: MergedMessage) -> None:
         custom_fields = {"success": False}
 
     yield await message.final_bot_response(bot, output, custom_fields=custom_fields)
+
+
+@SequentialMergedBotWrapper(bot_manager.create_bot(handle="AutoGPT"))
+async def autogpt(bot: MergedBot, conv_sequence: ConversationSequence) -> None:
+    embeddings_model = OpenAIEmbeddings()
+    embedding_size = 1536
+    index = faiss.IndexFlatL2(embedding_size)
+    vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+
+    message = await conv_sequence.wait_for_incoming()
+
+    aiconfig_response = await autogpt_aiconfig.bot.get_final_response(message)
+
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=SLOW_GPT_MODEL,
+        temperature=0.0,
+        model_kwargs={
+            "user": str(message.originator.uuid),
+        },
+        pl_tags=["mb_autogpt", secrets.token_hex(4)],
+    )
+
+    human_input_run = HumanInputRun(
+        bot=bot,
+        conv_sequence=conv_sequence,
+        latest_inbound_msg=message,
+    )
+    tools = [human_input_run]  # TODO add other tools (bots as tools)
+
+    autogpt_agent = AutoGPT.from_llm_and_tools(
+        ai_name=aiconfig_response.custom_fields["autogpt_name"],
+        ai_role=aiconfig_response.custom_fields["autogpt_role"],
+        tools=tools,
+        llm=chat_llm,
+        memory=vectorstore.as_retriever(),
+        feedback_tool=human_input_run,
+    )
+    # autogpt_agent.chain.verbose = True
+
+    await autogpt_agent.arun([aiconfig_response.custom_fields["autogpt_goals"]])

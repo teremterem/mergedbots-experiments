@@ -170,7 +170,7 @@ class AutoGPT:
             if self.feedback_tool is not None:
                 feedback = await self.feedback_tool.arun("Input: ")
                 if feedback in {"q", "stop"}:
-                    await self.feedback_tool.send_feedback("EXITING")
+                    await self.feedback_tool.send_feedback("EXITING", is_still_typing=False)
                     return "EXITING"
                 memory_to_add += f"\n{feedback}"
 
