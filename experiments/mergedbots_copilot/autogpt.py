@@ -80,7 +80,7 @@ class AutoGPT:
         chain: LLMChain,
         output_parser: BaseAutoGPTOutputParser,
         tools: List[BaseTool],
-        feedback_tool: Optional[HumanInputRun] = None,
+        feedback_tool: HumanInputRun,
     ):
         self.ai_name = ai_name
         self.memory = memory
@@ -99,7 +99,7 @@ class AutoGPT:
         memory: VectorStoreRetriever,
         tools: List[BaseTool],
         llm: BaseChatModel,
-        feedback_tool: Optional[HumanInputRun] = None,
+        feedback_tool: Optional[HumanInputRun],
         output_parser: Optional[BaseAutoGPTOutputParser] = None,
     ) -> "AutoGPT":
         prompt = AutoGPTPrompt(
@@ -116,7 +116,7 @@ class AutoGPT:
             chain,
             output_parser or AutoGPTOutputParser(),
             tools,
-            feedback_tool=feedback_tool,
+            feedback_tool,
         )
 
     async def arun(self, goals: List[str]) -> str:
@@ -136,8 +136,7 @@ class AutoGPT:
             )
 
             # Print Assistant thoughts
-            if self.feedback_tool is not None:
-                await self.feedback_tool.send_feedback(f"```json\n{assistant_reply}\n```")
+            await self.feedback_tool.send_feedback(f"```json\n{assistant_reply}\n```")
 
             # TODO replace this history with the mergedbots history ?
             self.full_message_history.append(HumanMessage(content=user_input))
@@ -147,7 +146,13 @@ class AutoGPT:
             action = self.output_parser.parse(assistant_reply)
             tools = {t.name: t for t in self.tools}
             if action.name == FINISH_NAME:
+                if self.feedback_tool is not None:
+                    await self.feedback_tool.send_feedback(
+                        f"FINISHED: {action.args['response']}", is_still_typing=False
+                    )
                 return action.args["response"]
+
+            tool = None
             if action.name in tools:
                 tool = tools[action.name]
                 try:
@@ -167,7 +172,8 @@ class AutoGPT:
                 )
 
             memory_to_add = f"Assistant Reply: {assistant_reply} " f"\nResult: {result} "
-            if self.feedback_tool is not None:
+            if not isinstance(tool, HumanInputRun):
+                await self.feedback_tool.send_feedback(result)
                 feedback = await self.feedback_tool.arun("Input: ")
                 if feedback in {"q", "stop"}:
                     await self.feedback_tool.send_feedback("EXITING", is_still_typing=False)
