@@ -99,6 +99,7 @@ async def autogpt(bot: MergedBot, conv_sequence: ConversationSequence) -> None:
     message = await conv_sequence.wait_for_incoming()
 
     aiconfig_response = await autogpt_aiconfig.bot.get_final_response(message)
+    await conv_sequence.yield_outgoing(aiconfig_response)
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=SLOW_GPT_MODEL,

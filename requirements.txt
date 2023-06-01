@@ -35,7 +35,7 @@ idna==3.4
     # via
     #   requests
     #   yarl
-langchain==0.0.187
+langchain==0.0.188
     # via
     #   -r requirements.in
     #   promptlayer
@@ -75,15 +75,20 @@ python-magic==0.4.27
     # via -r requirements.in
 pyyaml==6.0
     # via langchain
+regex==2023.5.5
+    # via tiktoken
 requests==2.31.0
     # via
     #   langchain
     #   openai
     #   promptlayer
+    #   tiktoken
 sqlalchemy==2.0.15
     # via langchain
 tenacity==8.2.2
     # via langchain
+tiktoken==0.4.0
+    # via -r requirements.in
 tqdm==4.65.0
     # via openai
 typing-extensions==4.6.2
