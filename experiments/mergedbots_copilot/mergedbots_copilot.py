@@ -99,7 +99,12 @@ async def autogpt(bot: MergedBot, conv_sequence: ConversationSequence) -> None:
     message = await conv_sequence.wait_for_incoming()
 
     aiconfig_response = await autogpt_aiconfig.bot.get_final_response(message)
-    await conv_sequence.yield_outgoing(aiconfig_response)  # TODO here is_still_typing should become True
+
+    # TODO here it would be cool to just override is_still_typing instead of creating a new message
+    # await conv_sequence.yield_outgoing(aiconfig_response)
+    await conv_sequence.yield_outgoing(
+        await message.interim_bot_response(aiconfig_response.sender, aiconfig_response.content)
+    )
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=SLOW_GPT_MODEL,

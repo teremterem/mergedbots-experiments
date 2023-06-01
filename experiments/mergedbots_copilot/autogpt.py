@@ -57,7 +57,7 @@ class HumanInputRun(BaseTool):
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
         """Use the Human tool asynchronously."""
-        await self.send_feedback(query)
+        await self.send_feedback(query, is_still_typing=False)
         self.latest_inbound_msg = await self.conv_sequence.wait_for_incoming()
         return self.latest_inbound_msg.content
 
