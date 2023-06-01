@@ -1,4 +1,5 @@
 """A bot that can inspect a repo."""
+import re
 
 from langchain import LLMChain
 from langchain.chat_models import PromptLayerChatOpenAI
@@ -61,5 +62,22 @@ async def autogpt_aiconfig(bot: MergedBot, message: MergedMessage) -> None:
         prompt=AICONFIG_PROMPT,
     )
 
-    result = await llm_chain.arun(user_prompt=message.content)
-    yield await message.final_bot_response(bot, result)
+    output = await llm_chain.arun(user_prompt=message.content)
+
+    ai_name = re.search(r"Name(?:\s*):(?:\s*)(.*)", output, re.IGNORECASE).group(1)
+    ai_role = (
+        re.search(
+            r"Description(?:\s*):(?:\s*)(.*?)(?:(?:\n)|Goals)",
+            output,
+            re.IGNORECASE | re.DOTALL,
+        )
+        .group(1)
+        .strip()
+    )
+    ai_goals = re.findall(r"(?<=\n)-\s*(.*)", output)
+    ai_goals_str = "\n".join([f"{i + 1}. {goal}" for i, goal in enumerate(ai_goals)])
+
+    yield await message.final_bot_response(
+        bot,
+        f"AI NAME: {ai_name}\n" f"AI ROLE: {ai_role}\n" f"AI GOALS:\n{ai_goals_str}",
+    )
