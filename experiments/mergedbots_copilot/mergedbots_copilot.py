@@ -9,7 +9,8 @@ from experiments.common.bot_manager import bot_manager, FAST_GPT_MODEL
 
 AICONFIG_PROMPT = ChatPromptTemplate.from_messages(
     [
-        SystemMessagePromptTemplate.from_template("""\
+        SystemMessagePromptTemplate.from_template(
+            """\
 Your task is to devise up to 5 highly effective goals and an appropriate role-based name (_GPT) for an autonomous \
 agent, ensuring that the goals are optimally aligned with the successful completion of its assigned task.
 
@@ -34,8 +35,8 @@ or overly wordy explanations.
 investment.
 
 - Proactively take the lead in guiding you and offering suggestions when faced with unclear information or \
-uncertainty to ensure your marketing strategy remains on track.
-"""),
+uncertainty to ensure your marketing strategy remains on track."""
+        ),
         HumanMessagePromptTemplate.from_template(
             "Task: '{user_prompt}'\n"
             "Respond only with the output in the exact format specified in the system prompt, with no explanation "
