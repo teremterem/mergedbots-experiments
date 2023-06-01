@@ -13,7 +13,7 @@ from mergedbots.experimental.sequential import SequentialMergedBotWrapper, Conve
 
 from experiments.common.bot_manager import SLOW_GPT_MODEL, bot_manager
 from experiments.common.repo_access_utils import ListRepoTool
-from experiments.repo_inspector.autogpt.agent import AutoGPT, MergedBotsHumanInputRun
+from experiments.repo_inspector.autogpt.obsolete_agent import AutoGPT, MergedBotsHumanInputRun
 
 
 @SequentialMergedBotWrapper(bot_manager.create_bot(handle="RepoInspector"))
