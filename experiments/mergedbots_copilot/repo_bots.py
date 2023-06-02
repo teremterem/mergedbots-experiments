@@ -44,7 +44,7 @@ YOUR RESPONSE:
 )
 
 
-@bot_manager.create_bot(handle="ListRepoTool")
+@bot_manager.create_bot(handle="ListRepoTool", description="Lists all the files in the repo.")
 async def list_repo_tool(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     file_list = list_files_in_repo(REPO_DIR)
     file_list_strings = [file.as_posix() for file in file_list]
@@ -59,7 +59,7 @@ async def list_repo_tool(bot: MergedBot, message: MergedMessage) -> AsyncGenerat
     yield await message.final_bot_response(bot, result, custom_fields={"file_list": file_list_strings})
 
 
-@bot_manager.create_bot(handle="ReadFileBot")
+@bot_manager.create_bot(handle="ReadFileBot", description="Reads a file from the repo.")
 async def read_file_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
     file_list_msg = await list_repo_tool.bot.get_final_response(message)
     file_set = set(file_list_msg.custom_fields["file_list"])

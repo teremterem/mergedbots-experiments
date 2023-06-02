@@ -1,17 +1,22 @@
 """A bot that can inspect a repo."""
 import re
 import secrets
+from typing import Any
+from uuid import uuid4
 
 import faiss
 from langchain import LLMChain, FAISS, InMemoryDocstore
 from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import HumanMessagePromptTemplate, SystemMessagePromptTemplate, ChatPromptTemplate
-from mergedbots import MergedBot, MergedMessage
+from langchain.tools import BaseTool
+from mergedbots import MergedBot, MergedMessage, MergedParticipant
 from mergedbots.experimental.sequential import SequentialMergedBotWrapper, ConversationSequence
+from pydantic import Field
 
 from experiments.common.bot_manager import bot_manager, FAST_GPT_MODEL, SLOW_GPT_MODEL
 from experiments.mergedbots_copilot.autogpt import AutoGPT, HumanInputRun
+from experiments.mergedbots_copilot.repo_bots import list_repo_tool, read_file_bot
 
 AICONFIG_PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -120,7 +125,17 @@ async def autogpt(bot: MergedBot, conv_sequence: ConversationSequence) -> None:
         conv_sequence=conv_sequence,
         latest_inbound_msg=message,
     )
-    tools = [human_input_run]  # TODO add other tools (bots as tools)
+    tools = [
+        MergedBotTool(
+            originator=bot,
+            target_bot=list_repo_tool.bot,
+        ),
+        MergedBotTool(
+            originator=bot,
+            target_bot=read_file_bot.bot,
+        ),
+        human_input_run,
+    ]
 
     autogpt_agent = AutoGPT.from_llm_and_tools(
         ai_name=aiconfig_response.custom_fields["autogpt_name"],
@@ -133,3 +148,33 @@ async def autogpt(bot: MergedBot, conv_sequence: ConversationSequence) -> None:
     # autogpt_agent.chain.verbose = True
 
     await autogpt_agent.arun([aiconfig_response.custom_fields["autogpt_goals"]])
+
+
+class MergedBotTool(BaseTool):
+    channel_id: str = Field(default_factory=lambda: str(uuid4()))
+    originator: MergedParticipant
+    target_bot: MergedBot
+    new_conversation_every_time: bool = False
+
+    def __init__(self, target_bot: MergedBot, **kwargs) -> None:
+        super().__init__(target_bot=target_bot, name=target_bot.name, description=target_bot.description, **kwargs)
+
+    def _run(
+        self,
+        query: str,
+    ) -> Any:
+        raise NotImplementedError
+
+    async def _arun(
+        self,
+        query: str,
+    ) -> str:
+        originator_message = await self.target_bot.manager.create_originator_message(
+            channel_type="virtual-merged-channel",
+            channel_id=self.channel_id,
+            originator=self.originator,
+            content=query,
+            new_conversation=self.new_conversation_every_time,
+        )
+        response = await self.target_bot.get_final_response(originator_message)
+        return response.content
