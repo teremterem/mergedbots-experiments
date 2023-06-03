@@ -10,7 +10,7 @@ from mergedbots.ext.discord_integration import MergedBotDiscord
 
 load_dotenv()
 sys.path.append(str(Path(__file__).parents[1]))
-from experiments.mergedbots_copilot.mergedbots_copilot import autogpt
+from experiments.mergedbots_copilot.repo_bots import list_repo_tool
 
 DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 
@@ -25,5 +25,5 @@ async def on_ready() -> None:
 
 
 if __name__ == "__main__":
-    MergedBotDiscord(bot=autogpt.bot, discord_client=discord_client)
+    MergedBotDiscord(bot=list_repo_tool.bot, discord_client=discord_client)
     discord_client.run(DISCORD_BOT_SECRET)
