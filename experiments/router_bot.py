@@ -53,7 +53,7 @@ async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[M
 
     bots_json = [
         {"name": other_bot.handle, "description": other_bot.description}
-        for other_bot in (plain_gpt.merged_bot, active_listener.merged_bot)
+        for other_bot in (plain_gpt.bot, active_listener.bot)
     ]
     conversation = await message.get_full_conversion()
     formatted_conv_parts = [
@@ -65,5 +65,5 @@ async def router_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[M
         conversation="\n\n".join(formatted_conv_parts), bots=json.dumps(bots_json)
     )
     print(f"ROUTING TO: {chosen_bot_handle}")
-    async for msg in bot.manager.fulfill(chosen_bot_handle, message, fallback_bot_handle=plain_gpt.merged_bot.handle):
+    async for msg in bot.manager.fulfill(chosen_bot_handle, message, fallback_bot_handle=plain_gpt.bot.handle):
         yield msg
