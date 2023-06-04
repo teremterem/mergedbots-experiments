@@ -44,14 +44,20 @@ YOUR RESPONSE:
 
 @bot_manager.create_bot(handle="RepoPathBot")
 async def repo_path_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+    feedback = await (await bot.manager.find_bot("FeedbackBot")).get_final_response(
+        await message.final_bot_response(bot, "hey, say something!")
+    )
+    yield feedback
     repo_dir = (Path(__file__).parents[3] / "mergedbots").resolve().as_posix()
     yield await message.final_bot_response(bot, repo_dir)
 
 
 @bot_manager.create_bot(handle="ListRepoTool", description="Lists all the files in a repo.")
 async def list_repo_tool(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
-    repo_dir_msg = await repo_path_bot.bot.get_final_response(message)
-    yield repo_dir_msg
+    repo_dir_msg = None
+    async for result in repo_path_bot.bot.fulfill(message):
+        repo_dir_msg = result
+        yield result
 
     repo_dir = Path(repo_dir_msg.content)
 
