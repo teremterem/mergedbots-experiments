@@ -10,8 +10,6 @@ from mergedbots.ext.discord_integration import DISCORD_MSG_LIMIT
 from experiments.common.bot_manager import bot_manager, FAST_GPT_MODEL
 from experiments.common.repo_access_utils import list_files_in_repo
 
-REPO_DIR = Path(__file__).parents[3] / "mergedbots"
-
 # `gpt-3.5-turbo` (unlike `gpt-4`) might pay more attention to `user` messages than it would to `system` messages
 EXTRACT_FILE_PATH_PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -44,14 +42,31 @@ YOUR RESPONSE:
 )
 
 
-@bot_manager.create_bot(handle="ListRepoTool", description="Lists all the files in the repo.")
+@bot_manager.create_bot(handle="RepoPathBot")
+async def repo_path_bot(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
+    feedback = await (await bot.manager.find_bot("FeedbackBot")).get_final_response(
+        await message.final_bot_response(bot, "hey, say something!")
+    )
+    yield feedback
+    repo_dir = (Path(__file__).parents[3] / "mergedbots").resolve().as_posix()
+    yield await message.final_bot_response(bot, repo_dir)
+
+
+@bot_manager.create_bot(handle="ListRepoTool", description="Lists all the files in a repo.")
 async def list_repo_tool(bot: MergedBot, message: MergedMessage) -> AsyncGenerator[MergedMessage, None]:
-    file_list = list_files_in_repo(REPO_DIR)
+    repo_dir_msg = None
+    async for result in repo_path_bot.bot.fulfill(message):
+        repo_dir_msg = result
+        yield result
+
+    repo_dir = Path(repo_dir_msg.content)
+
+    file_list = list_files_in_repo(repo_dir)
     file_list_strings = [file.as_posix() for file in file_list]
     file_list_string = "\n".join(file_list_strings)
 
     result = (
-        f"Here is the complete list of files that can be found in `{REPO_DIR.name}` repo:\n"
+        f"Here is the complete list of files that can be found in `{repo_dir.name}` repo:\n"
         f"```\n"
         f"{file_list_string}\n"
         f"```"
