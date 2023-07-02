@@ -47,7 +47,7 @@ async def repo_path_bot(context: SingleTurnContext) -> None:
 
 @bot_merger.create_bot("ListRepoBot", description="Lists all the files in the repo.")
 async def list_repo_bot(context: SingleTurnContext) -> None:
-    repo_dir_msg = await repo_path_bot.bot.get_final_response(None)
+    repo_dir_msg = await repo_path_bot.bot.get_final_response()
     repo_dir = Path(repo_dir_msg.content)
 
     file_list = list_files_in_repo(repo_dir)
@@ -63,12 +63,44 @@ async def list_repo_bot(context: SingleTurnContext) -> None:
     await context.yield_final_response(result, extra_fields={"file_list": file_list_strings})
 
 
+@bot_merger.create_bot("GetFilePathBot")
+async def get_file_path_bot(context: SingleTurnContext) -> None:
+    file_list_msg = await list_repo_bot.bot.get_final_response()
+    file_set = set(file_list_msg.extra_fields["file_list"])
+
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=FAST_GPT_MODEL,
+        temperature=0.0,
+        model_kwargs={
+            "stop": ['"', "\n"],
+            # TODO "user": str(message.originator.uuid),
+        },
+        pl_tags=["get_file_path_bot"],
+    )
+    llm_chain = LLMChain(
+        llm=chat_llm,
+        prompt=EXTRACT_FILE_PATH_PROMPT,
+    )
+    file_path = await llm_chain.arun(request=context.request.content, file_list=file_list_msg.content)
+
+    if file_path and file_path in file_set:
+        await context.yield_final_response(
+            file_path,
+            extra_fields={"success": True},
+        )
+    else:
+        await context.yield_final_response(
+            f"{file_list_msg.content}\n" f"Please specify the file you want to read.",
+            extra_fields={"success": False},
+        )
+
+
 @bot_merger.create_bot("ReadFileBot", description="Reads a file from the repo.")
 async def read_file_bot(context: SingleTurnContext) -> None:
-    repo_dir_msg = await repo_path_bot.bot.get_final_response(None)
+    repo_dir_msg = await repo_path_bot.bot.get_final_response()
     repo_dir = Path(repo_dir_msg.content)
 
-    file_list_msg = await list_repo_bot.bot.get_final_response(None)
+    file_list_msg = await list_repo_bot.bot.get_final_response()
     file_set = set(file_list_msg.extra_fields["file_list"])
 
     chat_llm = PromptLayerChatOpenAI(
