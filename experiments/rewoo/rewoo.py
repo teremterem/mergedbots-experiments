@@ -68,7 +68,7 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
     file_list_msg = await list_repo_bot.bot.get_final_response()
     file_set = set(file_list_msg.extra_fields["file_list"])
 
-    def yield_file_path(file_path: str) -> bool:
+    async def yield_file_path(file_path: str) -> bool:
         if not file_path:
             return False
 
@@ -82,7 +82,7 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
 
         return False
 
-    if yield_file_path(context.request.content):
+    if await yield_file_path(context.request.content):
         return
 
     chat_llm = PromptLayerChatOpenAI(
@@ -100,7 +100,7 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
     )
     file_path = await llm_chain.arun(request=context.request.content, file_list=file_list_msg.content)
 
-    if not yield_file_path(file_path):
+    if not await yield_file_path(file_path):
         await context.yield_final_response(
             f"{file_list_msg.content}\n" f"Please specify the file.",
             extra_fields={"success": False},
