@@ -45,8 +45,8 @@ async def repo_path_bot(context: SingleTurnContext) -> None:
     await context.yield_final_response(repo_dir)
 
 
-@bot_merger.create_bot("ListRepoTool", description="Lists all the files in the repo.")
-async def list_repo_tool(context: SingleTurnContext) -> None:
+@bot_merger.create_bot("ListRepoBot", description="Lists all the files in the repo.")
+async def list_repo_bot(context: SingleTurnContext) -> None:
     repo_dir_msg = await repo_path_bot.bot.get_final_response(None)
     repo_dir = Path(repo_dir_msg.content)
 
@@ -68,7 +68,7 @@ async def read_file_bot(context: SingleTurnContext) -> None:
     repo_dir_msg = await repo_path_bot.bot.get_final_response(None)
     repo_dir = Path(repo_dir_msg.content)
 
-    file_list_msg = await list_repo_tool.bot.get_final_response(None)
+    file_list_msg = await list_repo_bot.bot.get_final_response(None)
     file_set = set(file_list_msg.extra_fields["file_list"])
 
     chat_llm = PromptLayerChatOpenAI(
@@ -76,8 +76,7 @@ async def read_file_bot(context: SingleTurnContext) -> None:
         temperature=0.0,
         model_kwargs={
             "stop": ['"', "\n"],
-            # # TODO do we need this ?
-            # "user": str(message.originator.uuid),
+            # TODO "user": str(message.originator.uuid),
         },
         pl_tags=["read_file_bot"],
     )
