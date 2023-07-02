@@ -109,8 +109,8 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
 
 @bot_merger.create_bot("ReadFileBot", description="Reads a file from the repo.")
 async def read_file_bot(context: SingleTurnContext) -> None:
-    file_path_msg = await get_file_path_bot.bot.get_final_response()
-    if not file_path_msg.extra_fields["success"]:
+    file_path_msg = await get_file_path_bot.bot.get_final_response(context.request)
+    if not file_path_msg.extra_fields.get("success"):
         await context.yield_final_response(
             file_path_msg,
             extra_fields={"success": False},
