@@ -68,6 +68,23 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
     file_list_msg = await list_repo_bot.bot.get_final_response()
     file_set = set(file_list_msg.extra_fields["file_list"])
 
+    def yield_file_path(file_path: str) -> bool:
+        if not file_path:
+            return False
+
+        file_path = file_path.strip()
+        if file_path in file_set:
+            await context.yield_final_response(
+                file_path,
+                extra_fields={"success": True},
+            )
+            return True
+
+        return False
+
+    if yield_file_path(context.request.content):
+        return
+
     chat_llm = PromptLayerChatOpenAI(
         model_name=FAST_GPT_MODEL,
         temperature=0.0,
@@ -83,53 +100,30 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
     )
     file_path = await llm_chain.arun(request=context.request.content, file_list=file_list_msg.content)
 
-    if file_path and file_path in file_set:
+    if not yield_file_path(file_path):
         await context.yield_final_response(
-            file_path,
-            extra_fields={"success": True},
-        )
-    else:
-        await context.yield_final_response(
-            f"{file_list_msg.content}\n" f"Please specify the file you want to read.",
+            f"{file_list_msg.content}\n" f"Please specify the file.",
             extra_fields={"success": False},
         )
 
 
 @bot_merger.create_bot("ReadFileBot", description="Reads a file from the repo.")
 async def read_file_bot(context: SingleTurnContext) -> None:
-    repo_dir_msg = await repo_path_bot.bot.get_final_response()
-    repo_dir = Path(repo_dir_msg.content)
-
-    file_list_msg = await list_repo_bot.bot.get_final_response()
-    file_set = set(file_list_msg.extra_fields["file_list"])
-
-    chat_llm = PromptLayerChatOpenAI(
-        model_name=FAST_GPT_MODEL,
-        temperature=0.0,
-        model_kwargs={
-            "stop": ['"', "\n"],
-            # TODO "user": str(message.originator.uuid),
-        },
-        pl_tags=["read_file_bot"],
-    )
-    llm_chain = LLMChain(
-        llm=chat_llm,
-        prompt=EXTRACT_FILE_PATH_PROMPT,
-    )
-    file_path = await llm_chain.arun(request=context.request.content, file_list=file_list_msg.content)
-
-    if file_path and file_path in file_set:
-        await context.yield_interim_response(file_path)
-
+    file_path_msg = await get_file_path_bot.bot.get_final_response()
+    if not file_path_msg.extra_fields["success"]:
         await context.yield_final_response(
-            Path(repo_dir, file_path).read_text(encoding="utf-8"),
-            extra_fields={"success": True},
-        )
-    else:
-        await context.yield_final_response(
-            f"{file_list_msg.content}\n" f"Please specify the file you want to read.",
+            file_path_msg,
             extra_fields={"success": False},
         )
+        return
+
+    repo_dir_msg = await repo_path_bot.bot.get_final_response()
+    file_path = Path(repo_dir_msg.content) / file_path_msg.content
+
+    await context.yield_final_response(
+        file_path.read_text(encoding="utf-8"),
+        extra_fields={"success": True},
+    )
 
 
 @bot_merger.create_bot("ReWOO")
