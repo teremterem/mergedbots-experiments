@@ -146,7 +146,7 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
         )
         return
 
-    # TODO use the future `InquiryBot` to report this interim result ?
+    # TODO use the future `InquiryBot` to report this interim result ? and move it to the `get_file_path_bot` ?
     await context.yield_interim_response(file_path_msg)
 
     file_content_msg = await read_file_bot.bot.get_final_response(file_path_msg.content)
