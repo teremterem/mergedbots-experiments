@@ -146,6 +146,9 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
         )
         return
 
+    # TODO use the future `InquiryBot` to report this interim result ?
+    await context.yield_interim_response(file_path_msg)
+
     file_content_msg = await read_file_bot.bot.get_final_response(file_path_msg.content)
     if not file_path_msg.extra_fields.get("success"):
         await context.yield_final_response(
