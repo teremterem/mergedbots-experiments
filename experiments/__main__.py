@@ -8,10 +8,10 @@ import discord
 from botmerger.ext.discord_integration import attach_bot_to_discord
 from dotenv import load_dotenv
 
-from experiments.rewoo.rewoo import rewoo
-
 load_dotenv()
 sys.path.append(str(Path(__file__).parents[1]))
+
+from experiments.rewoo.rewoo import rewoo
 
 DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 
