@@ -5,7 +5,7 @@ from langchain import LLMChain
 from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
 
-from experiments.common.bot_merger import bot_merger, FAST_GPT_MODEL
+from experiments.common.bot_merger import bot_merger, FAST_GPT_MODEL, SLOW_GPT_MODEL
 from experiments.common.repo_access_utils import list_files_in_repo
 
 EXTRACT_FILE_PATH_PROMPT = ChatPromptTemplate.from_messages(
@@ -35,6 +35,13 @@ YOUR RESPONSE:
     "file": "\
 """
         ),
+    ]
+)
+EXPLAIN_FILE_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template("Here is the content of `{file_path}`:"),
+        HumanMessagePromptTemplate.from_template("{file_content}"),
+        SystemMessagePromptTemplate.from_template("Please explain this content in plain English."),
     ]
 )
 
@@ -126,10 +133,45 @@ async def read_file_bot(context: SingleTurnContext) -> None:
     )
 
 
+@bot_merger.create_bot(
+    "ExplainFileBot",
+    description="Explains the content of a file from the repo in plain English.",
+)
+async def explain_file_bot(context: SingleTurnContext) -> None:
+    file_path_msg = await get_file_path_bot.bot.get_final_response(context.request)
+    if not file_path_msg.extra_fields.get("success"):
+        await context.yield_final_response(
+            file_path_msg,
+            extra_fields={"success": False},
+        )
+        return
+
+    file_content_msg = await read_file_bot.bot.get_final_response(file_path_msg.content)
+    if not file_path_msg.extra_fields.get("success"):
+        await context.yield_final_response(
+            file_path_msg,
+            extra_fields={"success": False},
+        )
+        return
+
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=SLOW_GPT_MODEL,
+        temperature=0.0,
+        # TODO model_kwargs={"user": str(message.originator.uuid)},
+        pl_tags=["explain_file_bot"],
+    )
+    llm_chain = LLMChain(
+        llm=chat_llm,
+        prompt=EXPLAIN_FILE_PROMPT,
+    )
+    file_explanation = await llm_chain.arun(file_path=file_path_msg.content, file_content=file_content_msg.content)
+    await context.yield_final_response(file_explanation, extra_fields={"success": True})
+
+
 @bot_merger.create_bot("ReWOO")
 async def rewoo(context: SingleTurnContext) -> None:
     await context.yield_from(
-        await read_file_bot.bot.trigger(context.request),
+        await explain_file_bot.bot.trigger(context.request),
         indicate_typing_afterwards=True,
     )
     await context.yield_final_response("💪ReWOO")
