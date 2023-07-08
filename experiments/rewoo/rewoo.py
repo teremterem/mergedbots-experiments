@@ -81,10 +81,7 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
 
         file_path = file_path.strip()
         if file_path in file_set:
-            await context.yield_final_response(
-                file_path,
-                extra_fields={"success": True},
-            )
+            await context.yield_final_response(file_path)
             return True
 
         return False
@@ -108,29 +105,17 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
     file_path = await llm_chain.arun(request=context.request.content, file_list=file_list_msg.content)
 
     if not await yield_file_path(file_path):
-        await context.yield_final_response(
-            f"{file_list_msg.content}\n" f"Please specify the file.",
-            extra_fields={"success": False},
-        )
+        raise ValueError(f"{file_list_msg.content}\n" f"Please specify the file.")
 
 
 @bot_merger.create_bot("ReadFileBot", description="Reads a file from the repo.")
 async def read_file_bot(context: SingleTurnContext) -> None:
     file_path_msg = await get_file_path_bot.bot.get_final_response(context.request)
-    if not file_path_msg.extra_fields.get("success"):
-        await context.yield_final_response(
-            file_path_msg,
-            extra_fields={"success": False},
-        )
-        return
 
     repo_dir_msg = await repo_path_bot.bot.get_final_response()
     file_path = Path(repo_dir_msg.content) / file_path_msg.content
 
-    await context.yield_final_response(
-        file_path.read_text(encoding="utf-8"),
-        extra_fields={"success": True},
-    )
+    await context.yield_final_response(file_path.read_text(encoding="utf-8"))
 
 
 @bot_merger.create_bot(
@@ -139,23 +124,11 @@ async def read_file_bot(context: SingleTurnContext) -> None:
 )
 async def explain_file_bot(context: SingleTurnContext) -> None:
     file_path_msg = await get_file_path_bot.bot.get_final_response(context.request)
-    if not file_path_msg.extra_fields.get("success"):
-        await context.yield_final_response(
-            file_path_msg,
-            extra_fields={"success": False},
-        )
-        return
 
     # TODO use the future `InquiryBot` to report this interim result ? and move it to the `get_file_path_bot` ?
     await context.yield_interim_response(file_path_msg)
 
     file_content_msg = await read_file_bot.bot.get_final_response(file_path_msg.content)
-    if not file_path_msg.extra_fields.get("success"):
-        await context.yield_final_response(
-            file_path_msg,
-            extra_fields={"success": False},
-        )
-        return
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=SLOW_GPT_MODEL,
@@ -168,7 +141,7 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
         prompt=EXPLAIN_FILE_PROMPT,
     )
     file_explanation = await llm_chain.arun(file_path=file_path_msg.content, file_content=file_content_msg.content)
-    await context.yield_final_response(file_explanation, extra_fields={"success": True})
+    await context.yield_final_response(file_explanation)
 
 
 @bot_merger.create_bot("ReWOO")
