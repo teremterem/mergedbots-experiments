@@ -173,8 +173,5 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
 
 @bot_merger.create_bot("ReWOO")
 async def rewoo(context: SingleTurnContext) -> None:
-    await context.yield_from(
-        await explain_file_bot.bot.trigger(context.request),
-        indicate_typing_afterwards=True,
-    )
-    await context.yield_final_response("💪ReWOO")
+    await context.yield_from(await explain_file_bot.bot.trigger(context.request))
+    # await context.yield_final_response("💪ReWOO")
