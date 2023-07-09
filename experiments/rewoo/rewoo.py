@@ -44,6 +44,34 @@ EXPLAIN_FILE_PROMPT = ChatPromptTemplate.from_messages(
         SystemMessagePromptTemplate.from_template("Please explain this content in plain English."),
     ]
 )
+REWOO_PLANNER_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template(
+            """\
+For the following tasks, make plans that can solve the problem step-by-step. For each plan, indicate which external \
+tool together with tool input to retrieve evidence. You can store the evidence into a variable #E that can be called \
+by later tools. (Plan, #E1, Plan, #E2, Plan, ...)
+
+Tools can be one of the following:
+Google[input]: Worker that searches results from Google. Useful when you need to find short and succinct answers \
+about a specific topic. Input should be a search query.
+LLM[input]: A pretrained LLM like yourself. Useful when you need to act with general world knowledge and common \
+sense. Prioritize it when you are confident in solving the problem yourself. Input can be any instruction.
+
+Which Asian capital city is known as Krung Thep to its inhabitants and stands on the Chao Phraya River?
+Plan: Search for more information about Krung Thep
+#E1 = Wikipedia[Krung Thep]
+Plan: Search for more information about Chao Phraya River
+#E2 = Wikipedia[Chao Phraya River]
+Plan: Find out the name of the river on which Bakewell stands.
+#E3 = LLM[What is the name of the river on which Bakewell stands? Given context: #E1 and #E2]
+
+Begin! Describe your plans with rich details. Each Plan should be followed by only one #E.\
+"""
+        ),
+        HumanMessagePromptTemplate.from_template("{request}"),
+    ]
+)
 
 
 @bot_merger.create_bot("RepoPathBot")
@@ -154,5 +182,15 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
 
 @bot_merger.create_bot("ReWOO")
 async def rewoo(context: SingleTurnContext) -> None:
-    await context.yield_from(await explain_file_bot.bot.trigger(context.request))
-    # await context.yield_final_response("💪ReWOO")
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=SLOW_GPT_MODEL,
+        temperature=0.5,
+        # TODO model_kwargs={"user": str(message.originator.uuid)},
+        pl_tags=["explain_file_bot"],
+    )
+    llm_chain = LLMChain(
+        llm=chat_llm,
+        prompt=REWOO_PLANNER_PROMPT,
+    )
+    generated_plan = await llm_chain.arun(request=context.request.content)
+    await context.yield_final_response(generated_plan)
