@@ -57,7 +57,7 @@ async def list_repo_bot(context: SingleTurnContext) -> None:
     repo_dir_msg = await repo_path_bot.bot.get_final_response()
     repo_dir = Path(repo_dir_msg.content)
 
-    file_list = list_files_in_repo(repo_dir)
+    file_list = list_files_in_repo(repo_dir, additional_gitignore_content="README.md\ntests/")
     file_list_strings = [file.as_posix() for file in file_list]
     file_list_string = "\n".join(file_list_strings)
 
@@ -89,23 +89,26 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
     if await yield_file_path(context.request.content):
         return
 
-    chat_llm = PromptLayerChatOpenAI(
-        model_name=FAST_GPT_MODEL,
-        temperature=0.0,
-        model_kwargs={
-            "stop": ['"', "\n"],
-            # TODO "user": str(message.originator.uuid),
-        },
-        pl_tags=["get_file_path_bot"],
-    )
-    llm_chain = LLMChain(
-        llm=chat_llm,
-        prompt=EXTRACT_FILE_PATH_PROMPT,
-    )
-    file_path = await llm_chain.arun(request=context.request.content, file_list=file_list_msg.content)
+    async def figure_out_the_file_path(model_name: str) -> bool:
+        chat_llm = PromptLayerChatOpenAI(
+            model_name=model_name,
+            temperature=0.0,
+            model_kwargs={
+                "stop": ['"', "\n"],
+                # TODO "user": str(message.originator.uuid),
+            },
+            pl_tags=["get_file_path_bot"],
+        )
+        llm_chain = LLMChain(
+            llm=chat_llm,
+            prompt=EXTRACT_FILE_PATH_PROMPT,
+        )
+        file_path = await llm_chain.arun(request=context.request.content, file_list=file_list_msg.content)
+        return await yield_file_path(file_path)
 
-    if not await yield_file_path(file_path):
-        raise ValueError(f"{file_list_msg.content}\n" f"Please specify the file.")
+    if not await figure_out_the_file_path(FAST_GPT_MODEL):
+        if not await figure_out_the_file_path(SLOW_GPT_MODEL):
+            raise ValueError(f"{file_list_msg.content}\n" f"Please specify the file.")
 
 
 @bot_merger.create_bot("ReadFileBot", description="Reads a file from the repo.")
@@ -142,6 +145,11 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
     )
     file_explanation = await llm_chain.arun(file_path=file_path_msg.content, file_content=file_content_msg.content)
     await context.yield_final_response(file_explanation)
+
+
+# TODO summarize/outline the content of the file
+# TODO check prompts in smol.ai for inspiration
+# TODO answer a question about the repo, about a concept from the repo (ReWOO based, recursive)
 
 
 @bot_merger.create_bot("ReWOO")
