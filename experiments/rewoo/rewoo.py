@@ -62,23 +62,46 @@ For the following tasks, make plans that can solve the problem step-by-step. For
 tool together with tool input to retrieve evidence. You can store the evidence into a variable #E that can be called \
 by later tools. (Plan, #E1, Plan, #E2, Plan, ...)
 
-Tools can be one of the following:
-Google[input]: Worker that searches results from Google. Useful when you need to find short and succinct answers \
-about a specific topic. Input should be a search query.
-LLM[input]: A pretrained LLM like yourself. Useful when you need to act with general world knowledge and common \
-sense. Prioritize it when you are confident in solving the problem yourself. Input can be any instruction.
-
-Which Asian capital city is known as Krung Thep to its inhabitants and stands on the Chao Phraya River?
-Plan: Search for more information about Krung Thep
-#E1 = Wikipedia[Krung Thep]
-Plan: Search for more information about Chao Phraya River
-#E2 = Wikipedia[Chao Phraya River]
-Plan: Find out the name of the river on which Bakewell stands.
-#E3 = LLM[What is the name of the river on which Bakewell stands? Given context: #E1 and #E2]
-
+Here is the expected format of your response:\
+"""
+        ),
+        SystemMessagePromptTemplate.from_template(
+            """\
+Plan: explanation of a step of the plan
+#E1 = Tool1[natural text input to the tool.]
+Plan: explanation of a step of the plan
+#E2 = Tool2[natural text input to the tool.]
+Plan: explanation of a step of the plan
+#E3 = Tool1[natural text input to the tool. Given context: #E2]
+Plan: explanation of a step of the plan
+#E4 = Tool3[natural text input to the tool. Given context: #E1, #E3]\
+"""
+        ),
+        SystemMessagePromptTemplate.from_template(
+            """\
 Begin! Describe your plans with rich details. Each Plan should be followed by only one #E.\
 """
         ),
+        #         SystemMessagePromptTemplate.from_template(
+        #             """\
+        # Tools can be one of the following:
+        # Google[input]: Worker that searches results from Google. Useful when you need to find short and succinct \
+        # answers about a specific topic. Input should be a search query.
+        # LLM[input]: A pretrained LLM like yourself. Useful when you need to act with general world knowledge and \
+        # common  sense. Prioritize it when you are confident in solving the problem yourself. Input can be any \
+        # instruction.
+        #
+        # Which Asian capital city is known as Krung Thep to its inhabitants and stands on the Chao Phraya River?
+        # Plan: Search for more information about Krung Thep
+        # #E1 = Wikipedia[Krung Thep]
+        # Plan: Search for more information about Chao Phraya River
+        # #E2 = Wikipedia[Chao Phraya River]
+        # Plan: Find out the name of the river on which Bakewell stands.
+        # #E3 = LLM[What is the name of the river on which Bakewell stands? Given context: #E1 and #E2]
+        #
+        # Begin! Describe your plans with rich details. Each Plan should be followed by only one #E.\
+        # """
+        #         ),
         HumanMessagePromptTemplate.from_template("{request}"),
     ]
 )
