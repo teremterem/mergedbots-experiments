@@ -48,6 +48,16 @@ REWOO_PLANNER_PROMPT = ChatPromptTemplate.from_messages(
     [
         SystemMessagePromptTemplate.from_template(
             """\
+You are a chatbot that is good at analysing the code in the following repository and answering questions about the \
+concepts that can be found in this repository.
+
+Repository name: {repo_name}
+List of files in the repository:\
+"""
+        ),
+        HumanMessagePromptTemplate.from_template("{repo_file_list}"),
+        SystemMessagePromptTemplate.from_template(
+            """\
 For the following tasks, make plans that can solve the problem step-by-step. For each plan, indicate which external \
 tool together with tool input to retrieve evidence. You can store the evidence into a variable #E that can be called \
 by later tools. (Plan, #E1, Plan, #E2, Plan, ...)
@@ -121,10 +131,7 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
         chat_llm = PromptLayerChatOpenAI(
             model_name=model_name,
             temperature=0.0,
-            model_kwargs={
-                "stop": ['"', "\n"],
-                # TODO "user": str(message.originator.uuid),
-            },
+            model_kwargs={"stop": ['"', "\n"]},
             pl_tags=["get_file_path_bot"],
         )
         llm_chain = LLMChain(
@@ -164,7 +171,6 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
     chat_llm = PromptLayerChatOpenAI(
         model_name=SLOW_GPT_MODEL,
         temperature=0.0,
-        # TODO model_kwargs={"user": str(message.originator.uuid)},
         pl_tags=["explain_file_bot"],
     )
     llm_chain = LLMChain(
@@ -182,15 +188,21 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
 
 @bot_merger.create_bot("ReWOO")
 async def rewoo(context: SingleTurnContext) -> None:
+    repo_dir = Path((await repo_path_bot.bot.get_final_response()).content)
+    repo_file_list = "\n".join((await list_repo_bot.bot.get_final_response()).extra_fields["file_list"])
+
     chat_llm = PromptLayerChatOpenAI(
         model_name=SLOW_GPT_MODEL,
         temperature=0.5,
-        # TODO model_kwargs={"user": str(message.originator.uuid)},
-        pl_tags=["explain_file_bot"],
+        pl_tags=["rewoo_planner"],
     )
     llm_chain = LLMChain(
         llm=chat_llm,
         prompt=REWOO_PLANNER_PROMPT,
     )
-    generated_plan = await llm_chain.arun(request=context.request.content)
+    generated_plan = await llm_chain.arun(
+        repo_name=repo_dir.name,
+        repo_file_list=repo_file_list,
+        request=context.request.content,
+    )
     await context.yield_final_response(generated_plan)
