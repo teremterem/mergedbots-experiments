@@ -79,6 +79,21 @@ Plan: explanation of a step of the plan
         ),
         SystemMessagePromptTemplate.from_template(
             """\
+Tools can be one of the following:
+
+CodeOutlineGeneratorBot[input]: Displays the outline of a code file from the repository. Input should \
+be a file path. Does not accept file paths that are not present in the list of files above.
+FileReaderBot[input]: Displays the content of a file from the repository. Input should be a file path. \
+Does not accept file paths that are not present in the list of files above. Useful when you need to \
+look at the code directly.
+ConceptExplorerBot[input]: A complex bot that is an exact copy of yourself. Capable of generating and \
+carrying out elaborate plans just like you. Has access to all the same tools as you do. Input should \
+be a question about a concept.
+SimplerLLM[input]: A pretrained LLM like yourself. Useful when you need to act with general world \
+knowledge and common sense. Unlike yourself, though, it is not capable of generating and carrying \
+out plans. Prioritize it when you are confident in solving the problem in a single shot. \
+Input can be any instruction.
+
 Begin! Describe your plans with rich details. Each Plan should be followed by only one #E.\
 """
         ),
@@ -90,16 +105,6 @@ Begin! Describe your plans with rich details. Each Plan should be followed by on
         # LLM[input]: A pretrained LLM like yourself. Useful when you need to act with general world knowledge and \
         # common  sense. Prioritize it when you are confident in solving the problem yourself. Input can be any \
         # instruction.
-        #
-        # Which Asian capital city is known as Krung Thep to its inhabitants and stands on the Chao Phraya River?
-        # Plan: Search for more information about Krung Thep
-        # #E1 = Wikipedia[Krung Thep]
-        # Plan: Search for more information about Chao Phraya River
-        # #E2 = Wikipedia[Chao Phraya River]
-        # Plan: Find out the name of the river on which Bakewell stands.
-        # #E3 = LLM[What is the name of the river on which Bakewell stands? Given context: #E1 and #E2]
-        #
-        # Begin! Describe your plans with rich details. Each Plan should be followed by only one #E.\
         # """
         #         ),
         HumanMessagePromptTemplate.from_template("{request}"),
