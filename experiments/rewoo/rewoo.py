@@ -209,11 +209,6 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
     await context.yield_final_response(file_explanation)
 
 
-# TODO summarize/outline the content of the file
-# TODO check prompts in smol.ai for inspiration
-# TODO answer a question about the repo, about a concept from the repo (ReWOO based, recursive)
-
-
 @bot_merger.create_bot("ReWOO")
 async def rewoo(context: SingleTurnContext) -> None:
     repo_dir = Path((await repo_path_bot.bot.get_final_response()).content)
