@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from botmerger import SingleTurnContext
@@ -59,22 +60,40 @@ List of files in the repository:\
         SystemMessagePromptTemplate.from_template(
             """\
 For the following tasks, make plans that can solve the problem step-by-step. For each plan, indicate which external \
-tool together with tool input to retrieve evidence. You can store the evidence into a variable #E that can be called \
-by later tools. (Plan, #E1, Plan, #E2, Plan, ...)
+tool together with tool input to retrieve evidence. You can store the evidence into a variable that can be called \
+by later tools.
 
 Here is the expected format of your response:\
 """
         ),
         SystemMessagePromptTemplate.from_template(
             """\
-Plan: explanation of a step of the plan
-#E1 = Tool1[natural text input to the tool.]
-Plan: explanation of a step of the plan
-#E2 = Tool2[natural text input to the tool.]
-Plan: explanation of a step of the plan
-#E3 = Tool1[natural text input to the tool. Given context: #E2]
-Plan: explanation of a step of the plan
-#E4 = Tool3[natural text input to the tool. Given context: #E1, #E3]\
+{{
+    "evidence1": {{
+        "plan": "explanation of a step of the plan",
+        "tool": "Tool1",
+        "tool_input": "natural text input to the tool",
+        "context": []
+    }},
+    "evidence2": {{
+        "plan": "explanation of a step of the plan",
+        "tool": "Tool2",
+        "tool_input": "natural text input to the tool",
+        "context": []
+    }},
+    "evidence3": {{
+        "plan": "explanation of a step of the plan",
+        "tool": "Tool1",
+        "tool_input": "natural text input to the tool",
+        "context": ["evidence2"]
+    }},
+    "evidence4": {{
+        "plan": "explanation of a step of the plan",
+        "tool": "Tool3",
+        "tool_input": "natural text input to the tool",
+        "context": ["evidence1", "evidence3"]
+    }}
+}}\
 """
         ),
         SystemMessagePromptTemplate.from_template(
@@ -83,30 +102,23 @@ Tools can be one of the following:
 
 CodeOutlineGeneratorBot[input]: Displays the outline of a code file from the repository. Input should \
 be a file path. Does not accept file paths that are not present in the list of files above.
+
 FileReaderBot[input]: Displays the content of a file from the repository. Input should be a file path. \
 Does not accept file paths that are not present in the list of files above. Useful when you need to \
 look at the code directly.
+
 ConceptExplorerBot[input]: A complex bot that is an exact copy of yourself. Capable of generating and \
 carrying out elaborate plans just like you. Has access to all the same tools as you do. Input should \
 be a question about a concept.
+
 SimplerLLM[input]: A pretrained LLM like yourself. Useful when you need to act with general world \
 knowledge and common sense. Unlike yourself, though, it is not capable of generating and carrying \
-out plans. Prioritize it when you are confident in solving the problem in a single shot. \
-Input can be any instruction.
+out plans. Prioritize it when you are confident in solving a problem in a single shot. Input can be \
+any instruction.
 
-Begin! Describe your plans with rich details. Each Plan should be followed by only one #E.\
+Begin! Describe your plans with rich details. RESPOND WITH VALID JSON ONLY AND NO OTHER TEXT.\
 """
         ),
-        #         SystemMessagePromptTemplate.from_template(
-        #             """\
-        # Tools can be one of the following:
-        # Google[input]: Worker that searches results from Google. Useful when you need to find short and succinct \
-        # answers about a specific topic. Input should be a search query.
-        # LLM[input]: A pretrained LLM like yourself. Useful when you need to act with general world knowledge and \
-        # common  sense. Prioritize it when you are confident in solving the problem yourself. Input can be any \
-        # instruction.
-        # """
-        #         ),
         HumanMessagePromptTemplate.from_template("{request}"),
     ]
 )
@@ -228,4 +240,4 @@ async def rewoo(context: SingleTurnContext) -> None:
         repo_file_list=repo_file_list,
         request=context.request.content,
     )
-    await context.yield_final_response(generated_plan)
+    await context.yield_final_response(json.loads(generated_plan))
