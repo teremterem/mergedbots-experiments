@@ -164,7 +164,7 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
 
         return False
 
-    if await yield_file_path(context.request.content):
+    if await yield_file_path(context.concluding_request.content):
         return
 
     async def figure_out_the_file_path(model_name: str) -> bool:
@@ -178,7 +178,7 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
             llm=chat_llm,
             prompt=EXTRACT_FILE_PATH_PROMPT,
         )
-        file_path = await llm_chain.arun(request=context.request.content, file_list=file_list_msg.content)
+        file_path = await llm_chain.arun(request=context.concluding_request.content, file_list=file_list_msg.content)
         return await yield_file_path(file_path)
 
     if not await figure_out_the_file_path(FAST_GPT_MODEL):
@@ -188,7 +188,7 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
 
 @bot_merger.create_bot("ReadFileBot", description="Reads a file from the repo.")
 async def read_file_bot(context: SingleTurnContext) -> None:
-    file_path_msg = await get_file_path_bot.bot.get_final_response(context.request)
+    file_path_msg = await get_file_path_bot.bot.get_final_response(context.concluding_request)
 
     repo_dir_msg = await repo_path_bot.bot.get_final_response()
     file_path = Path(repo_dir_msg.content) / file_path_msg.content
@@ -201,7 +201,7 @@ async def read_file_bot(context: SingleTurnContext) -> None:
     description="Explains the content of a file from the repo in plain English.",
 )
 async def explain_file_bot(context: SingleTurnContext) -> None:
-    file_path_msg = await get_file_path_bot.bot.get_final_response(context.request)
+    file_path_msg = await get_file_path_bot.bot.get_final_response(context.concluding_request)
 
     # TODO use the future `InquiryBot` to report this interim result ? and move it to the `get_file_path_bot` ?
     await context.yield_interim_response(file_path_msg)
@@ -238,6 +238,6 @@ async def rewoo(context: SingleTurnContext) -> None:
     generated_plan = await llm_chain.arun(
         repo_name=repo_dir.name,
         repo_file_list=repo_file_list,
-        request=context.request.content,
+        request=context.concluding_request.content,
     )
     await context.yield_final_response(json.loads(generated_plan))
