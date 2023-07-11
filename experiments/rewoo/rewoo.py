@@ -259,9 +259,9 @@ async def rewoo(context: SingleTurnContext) -> None:
 
     promises: dict[str, BotResponses] = {}
     for evidence_id, plan in generated_plan.items():
-        bot = bot_merger.find_bot(plan["tool"])
-        context = [promises[previous_evidence_id] for previous_evidence_id in plan["context"]]
-        promises[evidence_id] = await bot.trigger(requests=[*context, plan["tool_input"]])
+        bot = await bot_merger.find_bot(plan["tool"])
+        plan_context = [promises[previous_evidence_id] for previous_evidence_id in plan["context"]]
+        promises[evidence_id] = await bot.trigger(requests=[*plan_context, plan["tool_input"]])
 
     for idx, (evidence_id, responses) in enumerate(promises.items()):
         await context.yield_interim_response(f"```\n{evidence_id}\n```")
