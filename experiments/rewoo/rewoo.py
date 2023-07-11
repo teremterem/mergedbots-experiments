@@ -101,21 +101,7 @@ Here is the expected format of your response:\
             """\
 Tools can be one of the following:
 
-CodeOutlineGeneratorBot[input]: Displays the outline of a code file from the repository. Input should \
-be a file path. Does not accept file paths that are not present in the list of files above.
-
-FileReaderBot[input]: Displays the content of a file from the repository. Input should be a file path. \
-Does not accept file paths that are not present in the list of files above. Useful when you need to \
-look at the code directly.
-
-ConceptExplorerBot[input]: A complex bot that is an exact copy of yourself. Capable of generating and \
-carrying out elaborate plans just like you. Has access to all the same tools as you do. Input should \
-be a question about a concept.
-
-SimplerLLM[input]: A pretrained LLM like yourself. Useful when you need to act with general world \
-knowledge and common sense. Unlike yourself, though, it is not capable of generating and carrying \
-out plans. Prioritize it when you are confident in solving a problem in a single shot. Input can be \
-any instruction.
+{tools}
 
 Begin! Describe your plans with rich details. RESPOND WITH VALID JSON ONLY AND NO OTHER TEXT.\
 """
@@ -254,13 +240,24 @@ async def rewoo(context: SingleTurnContext) -> None:
     generated_plan = await llm_chain.arun(
         repo_name=repo_dir.name,
         repo_file_list=repo_file_list,
+        tools="\n\n".join(
+            [
+                f"{bot.alias}[input]: {bot.description}"
+                for bot in (
+                    explain_file_bot.bot,
+                    read_file_bot.bot,
+                    rewoo.bot,
+                    simpler_llm.bot,
+                )
+            ]
+        ),
         request=context.concluding_request.content,
     )
     await context.yield_final_response(json.loads(generated_plan))
 
 
 @bot_merger.create_bot(
-    "CodeOutlineGeneratorBot",
+    "SimplerLLM",
     description=(
         "Displays the outline of a code file from the repository. Input should be a file path. Does not accept "
         "file paths that are not present in the list of files above."
