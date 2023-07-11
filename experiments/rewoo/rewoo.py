@@ -5,6 +5,7 @@ from botmerger import SingleTurnContext
 from langchain import LLMChain
 from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
+from langchain.schema import HumanMessage
 
 from experiments.common.bot_merger import bot_merger, FAST_GPT_MODEL, SLOW_GPT_MODEL
 from experiments.common.repo_access_utils import list_files_in_repo
@@ -186,7 +187,13 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
             raise ValueError(f"{file_list_msg.content}\n" f"Please specify the file.")
 
 
-@bot_merger.create_bot("ReadFileBot", description="Reads a file from the repo.")
+@bot_merger.create_bot(
+    "FileReaderBot",
+    description=(
+        "Displays the content of a file from the repository. Input should be a file path. Does not accept file "
+        "paths that are not present in the list of files above. Useful when you need to look at the code directly."
+    ),
+)
 async def read_file_bot(context: SingleTurnContext) -> None:
     file_path_msg = await get_file_path_bot.bot.get_final_response(context.concluding_request)
 
@@ -197,8 +204,11 @@ async def read_file_bot(context: SingleTurnContext) -> None:
 
 
 @bot_merger.create_bot(
-    "ExplainFileBot",
-    description="Explains the content of a file from the repo in plain English.",
+    "CodeOutlineGeneratorBot",
+    description=(
+        "Displays the outline of a code file from the repository. Input should be a file path. Does not accept "
+        "file paths that are not present in the list of files above."
+    ),
 )
 async def explain_file_bot(context: SingleTurnContext) -> None:
     file_path_msg = await get_file_path_bot.bot.get_final_response(context.concluding_request)
@@ -221,7 +231,13 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
     await context.yield_final_response(file_explanation)
 
 
-@bot_merger.create_bot("ReWOO")
+@bot_merger.create_bot(
+    "ConceptExplorerBot",
+    description=(
+        "A complex bot that is an exact copy of yourself. Capable of generating and carrying out elaborate plans "
+        "just like you. Has access to all the same tools as you do. Input should be a question about a concept."
+    ),
+)
 async def rewoo(context: SingleTurnContext) -> None:
     repo_dir = Path((await repo_path_bot.bot.get_final_response()).content)
     repo_file_list = "\n".join((await list_repo_bot.bot.get_final_response()).extra_fields["file_list"])
@@ -241,3 +257,20 @@ async def rewoo(context: SingleTurnContext) -> None:
         request=context.concluding_request.content,
     )
     await context.yield_final_response(json.loads(generated_plan))
+
+
+@bot_merger.create_bot(
+    "CodeOutlineGeneratorBot",
+    description=(
+        "Displays the outline of a code file from the repository. Input should be a file path. Does not accept "
+        "file paths that are not present in the list of files above."
+    ),
+)
+async def simpler_llm(context: SingleTurnContext) -> None:
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=SLOW_GPT_MODEL,
+        temperature=0.0,
+        pl_tags=["simpler_llm"],
+    )
+    result = await chat_llm.agenerate([[HumanMessage(content=context.concluding_request.content)]])
+    await context.yield_final_response(json.loads(result.generations[0][0].text))
