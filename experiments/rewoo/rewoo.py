@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from botmerger import SingleTurnContext
+from botmerger import SingleTurnContext, BotResponses
 from langchain import LLMChain
 from langchain.chat_models import PromptLayerChatOpenAI
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
@@ -237,23 +237,35 @@ async def rewoo(context: SingleTurnContext) -> None:
         llm=chat_llm,
         prompt=REWOO_PLANNER_PROMPT,
     )
-    generated_plan = await llm_chain.arun(
-        repo_name=repo_dir.name,
-        repo_file_list=repo_file_list,
-        tools="\n\n".join(
-            [
-                f"{bot.alias}[input]: {bot.description}"
-                for bot in (
-                    explain_file_bot.bot,
-                    read_file_bot.bot,
-                    rewoo.bot,
-                    simpler_llm.bot,
-                )
-            ]
-        ),
-        request=context.concluding_request.content,
+    generated_plan = json.loads(
+        await llm_chain.arun(
+            repo_name=repo_dir.name,
+            repo_file_list=repo_file_list,
+            tools="\n\n".join(
+                [
+                    f"{bot.alias}[input]: {bot.description}"
+                    for bot in (
+                        explain_file_bot.bot,
+                        read_file_bot.bot,
+                        rewoo.bot,
+                        simpler_llm.bot,
+                    )
+                ]
+            ),
+            request=context.concluding_request.content,
+        )
     )
-    await context.yield_final_response(json.loads(generated_plan))
+    await context.yield_final_response(generated_plan)
+
+    promises: dict[str, BotResponses] = {}
+    for evidence_id, plan in generated_plan.items():
+        bot = bot_merger.find_bot(plan["tool"])
+        context = [promises[previous_evidence_id] for previous_evidence_id in plan["context"]]
+        promises[evidence_id] = await bot.trigger(requests=[*context, plan["tool_input"]])
+
+    for idx, (evidence_id, responses) in enumerate(promises.items()):
+        await context.yield_interim_response(f"```\n{evidence_id}\n```")
+        await context.yield_from(responses, still_thinking=True if idx < len(promises) - 1 else None)
 
 
 @bot_merger.create_bot(
