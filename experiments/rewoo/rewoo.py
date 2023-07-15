@@ -73,7 +73,8 @@ The name of the repository name is `{repo_name}`. This repository contains the f
         SystemMessagePromptTemplate.from_template(
             """\
 Please outline all the concepts that are DECLARED in this file and also list ALL the other files from this repo \
-this file depends on. DO NOT LIST DEPENDENCIES THAT ARE NOT PART OF THIS REPO.\
+this file depends on.
+ATTENTION! DO NOT LIST THIRD PARTY DEPENDENCIES (THOSE THAT LIVE OUTSIDE OF THIS REPO)!\
 """
         ),
     ]
