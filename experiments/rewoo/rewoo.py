@@ -61,7 +61,8 @@ The name of the repository name is `{repo_name}`. This repository contains the f
         HumanMessagePromptTemplate.from_template("{file_content}"),
         SystemMessagePromptTemplate.from_template(
             """\
-Please outline all the concepts found in this file and also list all the files this file depends on.\
+Please outline all the concepts that are DECLARED in this file and also list all the other files from this repo \
+this file depends on. DO NOT LIST THIRD PARTY DEPENDENCIES (the ones that are not in this repo).\
 """
         ),
     ]
