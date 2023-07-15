@@ -14,6 +14,8 @@ from experiments.rewoo.rewoo_utils import list_botmerger_files
 def main() -> None:
     file_list = list_botmerger_files()
     for file in file_list:
+        if not file.lower().endswith(".py"):
+            continue
         print()
         print()
         print()
