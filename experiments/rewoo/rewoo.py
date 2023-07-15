@@ -291,18 +291,18 @@ async def rewoo(context: SingleTurnContext) -> None:
         llm=chat_llm,
         prompt=REWOO_PLANNER_PROMPT,
     )
-    rewoo_tools = (
-        explain_file_bot.bot,
-        generate_file_outline.bot,
-        read_file_bot.bot,
-        rewoo.bot,
-        simpler_llm.bot,
-    )
+    # rewoo_tools = (
+    #     explain_file_bot.bot,
+    #     generate_file_outline.bot,
+    #     read_file_bot.bot,
+    #     rewoo.bot,
+    #     simpler_llm.bot,
+    # )
     generated_plan = json.loads(
         await llm_chain.arun(
             repo_name=BOTMERGER_REPO_PATH.name,
             file_list=file_list,
-            file_outlines="\n\n".join(get_botmerger_outlines()),
+            file_outlines="\n\n\n".join(get_botmerger_outlines()),
             # tools="\n\n".join([f"{bot.alias}[input]: {bot.description}" for bot in rewoo_tools]),
             request=context.concluding_request.content,
         )
