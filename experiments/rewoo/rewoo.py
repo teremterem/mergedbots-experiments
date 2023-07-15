@@ -255,7 +255,7 @@ async def generate_file_outline(context: SingleTurnContext) -> None:
     file_content_msg = await read_file_bot.bot.get_final_response(file_path_msg.content)
 
     chat_llm = PromptLayerChatOpenAI(
-        model_name=SLOW_GPT_MODEL,
+        model_name=FAST_GPT_MODEL,
         temperature=0.0,
         pl_tags=["generate_outline_bot"],
     )
