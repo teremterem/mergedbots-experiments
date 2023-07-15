@@ -19,7 +19,7 @@ BOTMERGER_OUTLINES_PATH = Path(f"{BOTMERGER_REPO_PATH.as_posix()}.inspection") /
 async def save_the_outline(file: str, bot_responses: BotResponses) -> None:
     outline = (await bot_responses.get_final_response()).content
     outline = f"FILE: {file}\n\n{outline}"
-    outline_file_path = BOTMERGER_OUTLINES_PATH / "{file}.txt"
+    outline_file_path = BOTMERGER_OUTLINES_PATH / f"{file}.txt"
     outline_file_path.parent.mkdir(parents=True, exist_ok=True)
     outline_file_path.write_text(outline, encoding="utf-8")
 
