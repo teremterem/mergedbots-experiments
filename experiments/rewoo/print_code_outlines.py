@@ -25,6 +25,8 @@ def main() -> None:
     print()
     print("\n".join(file_list))
     print()
+    print()
+    print()
 
 
 if __name__ == "__main__":
