@@ -26,10 +26,14 @@ async def save_the_outline(file: str, bot_responses: BotResponses) -> None:
 
 async def main() -> None:
     shutil.rmtree(BOTMERGER_OUTLINES_PATH, ignore_errors=True)
+
     tasks = []
     for file in list_botmerger_files():
+        if not file.lower().endswith(".py"):
+            continue
         responses = await generate_file_outline.bot.trigger(file)
         tasks.append(asyncio.create_task(save_the_outline(file, responses)))
+
     await asyncio.gather(*tasks)
 
 
