@@ -51,7 +51,7 @@ GENERATE_FILE_OUTLINE_PROMPT = ChatPromptTemplate.from_messages(
     [
         SystemMessagePromptTemplate.from_template(
             """\
-You are a chatbot that generates code outlines and lists dependencies for source code files of a repository in the
+You are a chatbot that generates code outlines and lists dependencies for source code files of a repository in the \
 following format:
 ```
 Declared concepts:
