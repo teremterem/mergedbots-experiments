@@ -51,7 +51,18 @@ GENERATE_FILE_OUTLINE_PROMPT = ChatPromptTemplate.from_messages(
     [
         SystemMessagePromptTemplate.from_template(
             """\
-You are a chatbot that generates code outlines and lists dependencies for source code files of a repository.
+You are a chatbot that generates code outlines and lists dependencies for source code files of a repository in the
+following format:
+```
+Declared concepts:
+- concept1 - a class
+- concept2 - a function
+- concept3 - a variable
+
+Dependencies:
+- file1
+- file2
+```
 
 The name of the repository name is `{repo_name}`. This repository contains the following files:\
 """
@@ -61,7 +72,7 @@ The name of the repository name is `{repo_name}`. This repository contains the f
         HumanMessagePromptTemplate.from_template("{file_content}"),
         SystemMessagePromptTemplate.from_template(
             """\
-Please outline all the concepts that are DECLARED in this file and also list all the other files from this repo \
+Please outline all the concepts that are DECLARED in this file and also list ALL the other files from this repo \
 this file depends on. DO NOT LIST DEPENDENCIES THAT ARE NOT PART OF THIS REPO.\
 """
         ),
