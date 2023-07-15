@@ -14,7 +14,9 @@ from experiments.rewoo.rewoo_utils import list_botmerger_files
 def main() -> None:
     for file in list_botmerger_files():
         print()
+        print()
         print((BOTMERGER_OUTLINES_PATH / f"{file}.txt").read_text(encoding="utf-8"))
+        print()
 
 
 if __name__ == "__main__":
