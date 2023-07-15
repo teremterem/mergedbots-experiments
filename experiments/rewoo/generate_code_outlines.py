@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(str(Path(__file__).parents[2]))
 
-from experiments.rewoo.rewoo import generate_file_outline
 from experiments.rewoo.rewoo_utils import list_botmerger_files, BOTMERGER_REPO_PATH
 
 BOTMERGER_OUTLINES_PATH = Path(f"{BOTMERGER_REPO_PATH.as_posix()}.inspection") / "outlines"
@@ -25,6 +24,8 @@ async def save_the_outline(file: str, bot_responses: BotResponses) -> None:
 
 
 async def main() -> None:
+    from experiments.rewoo.rewoo import generate_file_outline
+
     shutil.rmtree(BOTMERGER_OUTLINES_PATH, ignore_errors=True)
 
     tasks = []

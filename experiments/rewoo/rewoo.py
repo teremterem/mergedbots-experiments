@@ -7,6 +7,7 @@ from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, Sy
 from langchain.schema import HumanMessage
 
 from experiments.common.bot_merger import bot_merger, FAST_GPT_MODEL, SLOW_GPT_MODEL
+from experiments.rewoo.print_code_outlines import get_botmerger_outlines
 from experiments.rewoo.rewoo_utils import list_botmerger_files, BOTMERGER_REPO_PATH
 
 GET_FILE_PATH_PROMPT = ChatPromptTemplate.from_messages(
@@ -91,7 +92,11 @@ Repository name: {repo_name}
 List of files in the repository:\
 """
         ),
-        HumanMessagePromptTemplate.from_template("{repo_file_list}"),
+        HumanMessagePromptTemplate.from_template("{file_list}"),
+        SystemMessagePromptTemplate.from_template(
+            "And here are the outlines of the source code files in `{repo_name}` repo:"
+        ),
+        HumanMessagePromptTemplate.from_template("{file_outlines}"),
         SystemMessagePromptTemplate.from_template(
             """\
 For the following tasks, make plans that can solve the problem step-by-step. For each plan, indicate which external \
@@ -131,14 +136,17 @@ Here is the expected format of your response:\
 }}\
 """
         ),
+        #         SystemMessagePromptTemplate.from_template(
+        #             """\
+        # Tools can be one of the following:
+        #
+        # {tools}
+        #
+        # Begin! Describe your plans with rich details. RESPOND WITH VALID JSON ONLY AND NO OTHER TEXT.\
+        # """
+        #         ),
         SystemMessagePromptTemplate.from_template(
-            """\
-Tools can be one of the following:
-
-{tools}
-
-Begin! Describe your plans with rich details. RESPOND WITH VALID JSON ONLY AND NO OTHER TEXT.\
-"""
+            "Begin! Describe your plans with rich details. RESPOND WITH VALID JSON ONLY AND NO OTHER TEXT."
         ),
         HumanMessagePromptTemplate.from_template("{request}"),
     ]
@@ -293,8 +301,9 @@ async def rewoo(context: SingleTurnContext) -> None:
     generated_plan = json.loads(
         await llm_chain.arun(
             repo_name=BOTMERGER_REPO_PATH.name,
-            repo_file_list=file_list,
-            tools="\n\n".join([f"{bot.alias}[input]: {bot.description}" for bot in rewoo_tools]),
+            file_list=file_list,
+            file_outlines="\n\n".join(get_botmerger_outlines()),
+            # tools="\n\n".join([f"{bot.alias}[input]: {bot.description}" for bot in rewoo_tools]),
             request=context.concluding_request.content,
         )
     )
@@ -328,4 +337,4 @@ async def simpler_llm(context: SingleTurnContext) -> None:
     await context.yield_final_response(json.loads(result.generations[0][0].text))
 
 
-main_bot = generate_file_outline.bot
+main_bot = rewoo.bot

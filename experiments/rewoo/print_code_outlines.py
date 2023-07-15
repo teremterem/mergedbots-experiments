@@ -11,19 +11,25 @@ from experiments.rewoo.generate_code_outlines import BOTMERGER_OUTLINES_PATH
 from experiments.rewoo.rewoo_utils import list_botmerger_files
 
 
+def get_botmerger_outlines() -> list[str]:
+    result = [
+        (BOTMERGER_OUTLINES_PATH / f"{file}.txt").read_text(encoding="utf-8")
+        for file in list_botmerger_files()
+        if file.lower().endswith(".py")
+    ]
+    return result
+
+
 def main() -> None:
-    file_list = list_botmerger_files()
-    for file in file_list:
-        if not file.lower().endswith(".py"):
-            continue
+    for outline in get_botmerger_outlines():
         print()
         print()
         print()
-        print((BOTMERGER_OUTLINES_PATH / f"{file}.txt").read_text(encoding="utf-8"))
+        print(outline)
     print()
     print()
     print()
-    print("\n".join(file_list))
+    print("\n".join(list_botmerger_files()))
     print()
     print()
     print()
