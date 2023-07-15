@@ -1,5 +1,6 @@
 # pylint: disable=wrong-import-position
 import asyncio
+import shutil
 import sys
 from pathlib import Path
 
@@ -10,16 +11,21 @@ load_dotenv()
 sys.path.append(str(Path(__file__).parents[2]))
 
 from experiments.rewoo.rewoo import generate_file_outline
-from experiments.rewoo.rewoo_utils import list_botmerger_files
+from experiments.rewoo.rewoo_utils import list_botmerger_files, BOTMERGER_REPO_PATH
+
+BOTMERGER_OUTLINES_PATH = Path(f"{BOTMERGER_REPO_PATH.as_posix()}.inspection") / "outlines"
 
 
 async def save_the_outline(file: str, bot_responses: BotResponses) -> None:
     outline = (await bot_responses.get_final_response()).content
     outline = f"FILE: {file}\n\n{outline}"
-    print(f"\n{outline}\n")
+    outline_file_path = BOTMERGER_OUTLINES_PATH / "{file}.txt"
+    outline_file_path.parent.mkdir(parents=True, exist_ok=True)
+    outline_file_path.write_text(outline, encoding="utf-8")
 
 
 async def main() -> None:
+    shutil.rmtree(BOTMERGER_OUTLINES_PATH, ignore_errors=True)
     tasks = []
     for file in list_botmerger_files():
         responses = await generate_file_outline.bot.trigger(file)
