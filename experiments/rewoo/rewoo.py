@@ -144,30 +144,6 @@ Begin! Describe your plans with rich details. RESPOND WITH VALID JSON ONLY AND N
 )
 
 
-@bot_merger.create_bot("RepoPathBot")
-async def repo_path_bot(context: SingleTurnContext) -> None:
-    repo_dir = (Path(__file__).parents[3] / "botmerger").resolve().as_posix()
-    await context.yield_final_response(repo_dir)
-
-
-@bot_merger.create_bot("ListRepoBot", description="Lists all the files in the repo.")
-async def list_repo_bot(context: SingleTurnContext) -> None:
-    repo_dir_msg = await repo_path_bot.bot.get_final_response()
-    repo_dir = Path(repo_dir_msg.content)
-
-    file_list = list_files_in_repo(repo_dir, additional_gitignore_content="README.md\ntests/")
-    file_list_strings = [file.as_posix() for file in file_list]
-    file_list_string = "\n".join(file_list_strings)
-
-    result = (
-        f"Here is the complete list of files that can be found in `{repo_dir.name}` repo:\n"
-        f"```\n"
-        f"{file_list_string}\n"
-        f"```"
-    )
-    await context.yield_final_response(result, extra_fields={"file_list": file_list_strings})
-
-
 @bot_merger.create_bot("GetFilePathBot")
 async def get_file_path_bot(context: SingleTurnContext) -> None:
     file_list_msg = await list_repo_bot.bot.get_final_response()
