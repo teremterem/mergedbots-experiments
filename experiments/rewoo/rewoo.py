@@ -56,7 +56,7 @@ Declared concepts:
 - concept2 - a function
 - concept3 - a variable
 
-Dependencies:
+Other files from this repo this file depends on:
 - file1
 - file2
 ```
@@ -69,9 +69,8 @@ The name of the repository name is `{repo_name}`. This repository contains the f
         HumanMessagePromptTemplate.from_template("{file_content}"),
         SystemMessagePromptTemplate.from_template(
             """\
-Please outline all the concepts that are DECLARED in this file and also list ALL the other files from this repo \
-this file depends on.
-ATTENTION! DO NOT LIST THIRD PARTY DEPENDENCIES (THOSE THAT LIVE OUTSIDE OF THIS REPO)!\
+Please outline all the concepts that are DECLARED in this file and also list ALL the other files FROM THIS REPO \
+this file depends on. DO NOT LIST FILES OR MODULES THAT AREN'T PART OF `{repo_name}` REPO!\
 """
         ),
     ]
