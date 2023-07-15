@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(str(Path(__file__).parents[1]))
 
-from experiments.rewoo.rewoo import rewoo
+from experiments.rewoo.rewoo import main_bot
 
 DISCORD_BOT_SECRET = os.environ["DISCORD_BOT_SECRET"]
 
@@ -26,5 +26,5 @@ async def on_ready() -> None:
 
 
 if __name__ == "__main__":
-    attach_bot_to_discord(rewoo.bot, discord_client)
+    attach_bot_to_discord(main_bot, discord_client)
     discord_client.run(DISCORD_BOT_SECRET)

@@ -73,25 +73,25 @@ Here is the expected format of your response:\
     "evidence1": {{
         "plan": "explanation of a step of the plan",
         "tool": "Tool1",
-        "tool_input": "natural text input to the tool",
+        "tool_input": "free form text",
         "context": []
     }},
     "evidence2": {{
         "plan": "explanation of a step of the plan",
         "tool": "Tool2",
-        "tool_input": "natural text input to the tool",
+        "tool_input": "free form text",
         "context": []
     }},
     "evidence3": {{
         "plan": "explanation of a step of the plan",
         "tool": "Tool1",
-        "tool_input": "natural text input to the tool",
+        "tool_input": "free form text",
         "context": ["evidence2"]
     }},
     "evidence4": {{
         "plan": "explanation of a step of the plan",
         "tool": "Tool3",
-        "tool_input": "natural text input to the tool",
+        "tool_input": "free form text",
         "context": ["evidence1", "evidence3"]
     }}
 }}\
@@ -237,21 +237,17 @@ async def rewoo(context: SingleTurnContext) -> None:
         llm=chat_llm,
         prompt=REWOO_PLANNER_PROMPT,
     )
+    rewoo_tools = (
+        explain_file_bot.bot,
+        read_file_bot.bot,
+        rewoo.bot,
+        simpler_llm.bot,
+    )
     generated_plan = json.loads(
         await llm_chain.arun(
             repo_name=repo_dir.name,
             repo_file_list=repo_file_list,
-            tools="\n\n".join(
-                [
-                    f"{bot.alias}[input]: {bot.description}"
-                    for bot in (
-                        explain_file_bot.bot,
-                        read_file_bot.bot,
-                        rewoo.bot,
-                        simpler_llm.bot,
-                    )
-                ]
-            ),
+            tools="\n\n".join([f"{bot.alias}[input]: {bot.description}" for bot in rewoo_tools]),
             request=context.concluding_request.content,
         )
     )
@@ -283,3 +279,6 @@ async def simpler_llm(context: SingleTurnContext) -> None:
     )
     result = await chat_llm.agenerate([[HumanMessage(content=context.concluding_request.content)]])
     await context.yield_final_response(json.loads(result.generations[0][0].text))
+
+
+main_bot = rewoo.bot
