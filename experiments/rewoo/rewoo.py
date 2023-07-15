@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 from botmerger import SingleTurnContext, BotResponses
 from langchain import LLMChain
@@ -8,17 +7,16 @@ from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, Sy
 from langchain.schema import HumanMessage
 
 from experiments.common.bot_merger import bot_merger, FAST_GPT_MODEL, SLOW_GPT_MODEL
-from experiments.common.repo_access_utils import list_files_in_repo
+from experiments.rewoo.rewoo_utils import list_botmerger_files, BOTMERGER_REPO_PATH
 
-EXTRACT_FILE_PATH_PROMPT = ChatPromptTemplate.from_messages(
+GET_FILE_PATH_PROMPT = ChatPromptTemplate.from_messages(
     [
-        SystemMessagePromptTemplate.from_template("{file_list}"),
-        HumanMessagePromptTemplate.from_template(
-            """\
-HERE IS A REQUEST FROM A USER:
-
-{request}"""
+        SystemMessagePromptTemplate.from_template(
+            "Here is the complete list of files that can be found in `{repo_name}` repo:"
         ),
+        HumanMessagePromptTemplate.from_template("{file_list}"),
+        SystemMessagePromptTemplate.from_template("AND HERE IS A REQUEST FROM A USER:"),
+        HumanMessagePromptTemplate.from_template("{request}"),
         SystemMessagePromptTemplate.from_template(
             """\
 IF THE USER IS ASKING FOR A FILE FROM THE REPO ABOVE, PLEASE RESPOND WITH THE FOLLOWING JSON:
@@ -41,7 +39,6 @@ YOUR RESPONSE:
 )
 EXPLAIN_FILE_PROMPT = ChatPromptTemplate.from_messages(
     [
-        SystemMessagePromptTemplate.from_template("{file_list}"),  # TODO is this needed ?
         SystemMessagePromptTemplate.from_template("Here is the content of `{file_path}`:"),
         HumanMessagePromptTemplate.from_template("{file_content}"),
         SystemMessagePromptTemplate.from_template("Please explain this content in plain English."),
@@ -67,7 +64,7 @@ Dependencies:
 The name of the repository name is `{repo_name}`. This repository contains the following files:\
 """
         ),
-        HumanMessagePromptTemplate.from_template("{repo_file_list}"),
+        HumanMessagePromptTemplate.from_template("{file_list}"),
         SystemMessagePromptTemplate.from_template("Here is the content of `{file_path}`:"),
         HumanMessagePromptTemplate.from_template("{file_content}"),
         SystemMessagePromptTemplate.from_template(
@@ -146,8 +143,9 @@ Begin! Describe your plans with rich details. RESPOND WITH VALID JSON ONLY AND N
 
 @bot_merger.create_bot("GetFilePathBot")
 async def get_file_path_bot(context: SingleTurnContext) -> None:
-    file_list_msg = await list_repo_bot.bot.get_final_response()
-    file_set = set(file_list_msg.extra_fields["file_list"])
+    file_list = list_botmerger_files()
+    file_list_str = "\n".join(file_list)
+    file_set = set(file_list)
 
     async def yield_file_path(file_path: str) -> bool:
         if not file_path:
@@ -172,14 +170,18 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
         )
         llm_chain = LLMChain(
             llm=chat_llm,
-            prompt=EXTRACT_FILE_PATH_PROMPT,
+            prompt=GET_FILE_PATH_PROMPT,
         )
-        file_path = await llm_chain.arun(request=context.concluding_request.content, file_list=file_list_msg.content)
+        file_path = await llm_chain.arun(
+            repo_name=BOTMERGER_REPO_PATH.name,
+            file_list=file_list_str,
+            request=context.concluding_request.content,
+        )
         return await yield_file_path(file_path)
 
     if not await figure_out_the_file_path(FAST_GPT_MODEL):
         if not await figure_out_the_file_path(SLOW_GPT_MODEL):
-            raise ValueError(f"{file_list_msg.content}\n" f"Please specify the file.")
+            raise ValueError(f"```\n{file_list_str}\n```\nPlease specify one of the files from the list above.")
 
 
 @bot_merger.create_bot(
@@ -191,9 +193,7 @@ async def get_file_path_bot(context: SingleTurnContext) -> None:
 )
 async def read_file_bot(context: SingleTurnContext) -> None:
     file_path_msg = await get_file_path_bot.bot.get_final_response(context.concluding_request)
-
-    repo_dir_msg = await repo_path_bot.bot.get_final_response()
-    file_path = Path(repo_dir_msg.content) / file_path_msg.content
+    file_path = BOTMERGER_REPO_PATH / file_path_msg.content
 
     await context.yield_final_response(file_path.read_text(encoding="utf-8"))
 
@@ -234,9 +234,8 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
     ),
 )
 async def generate_file_outline(context: SingleTurnContext) -> None:
-    repo_dir = Path((await repo_path_bot.bot.get_final_response()).content)
     file_path_msg = await get_file_path_bot.bot.get_final_response(context.concluding_request)
-    repo_file_list = "\n".join((await list_repo_bot.bot.get_final_response()).extra_fields["file_list"])
+    file_list = "\n".join(list_botmerger_files())
 
     # TODO use the future `InquiryBot` to report this interim result ? and move it to the `get_file_path_bot` ?
     await context.yield_interim_response(file_path_msg)
@@ -253,8 +252,8 @@ async def generate_file_outline(context: SingleTurnContext) -> None:
         prompt=GENERATE_FILE_OUTLINE_PROMPT,
     )
     file_explanation = await llm_chain.arun(
-        repo_name=repo_dir.name,
-        repo_file_list=repo_file_list,
+        repo_name=BOTMERGER_REPO_PATH.name,
+        file_list=file_list,
         file_path=file_path_msg.content,
         file_content=file_content_msg.content,
     )
@@ -269,8 +268,7 @@ async def generate_file_outline(context: SingleTurnContext) -> None:
     ),
 )
 async def rewoo(context: SingleTurnContext) -> None:
-    repo_dir = Path((await repo_path_bot.bot.get_final_response()).content)
-    repo_file_list = "\n".join((await list_repo_bot.bot.get_final_response()).extra_fields["file_list"])
+    file_list = "\n".join(list_botmerger_files())
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=SLOW_GPT_MODEL,
@@ -290,8 +288,8 @@ async def rewoo(context: SingleTurnContext) -> None:
     )
     generated_plan = json.loads(
         await llm_chain.arun(
-            repo_name=repo_dir.name,
-            repo_file_list=repo_file_list,
+            repo_name=BOTMERGER_REPO_PATH.name,
+            repo_file_list=file_list,
             tools="\n\n".join([f"{bot.alias}[input]: {bot.description}" for bot in rewoo_tools]),
             request=context.concluding_request.content,
         )
