@@ -63,6 +63,10 @@ Other files from this repo this file depends on:
 Third-party libraries this file depends on:
 - library1
 - library2
+
+Built-in libraries this file depends on:
+- library1
+- library2
 ```
 
 The name of the repository name is `{repo_name}`. This repository contains the following files:\
@@ -72,9 +76,7 @@ The name of the repository name is `{repo_name}`. This repository contains the f
         SystemMessagePromptTemplate.from_template("Here is the content of `{file_path}`:"),
         HumanMessagePromptTemplate.from_template("{file_content}"),
         SystemMessagePromptTemplate.from_template(
-            """\
-Please outline all the concepts that are DECLARED in this file and list this file's dependencies.\
-"""
+            "Please outline all the concepts that are DECLARED in this file and list this file's dependencies."
         ),
     ]
 )
