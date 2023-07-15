@@ -41,9 +41,29 @@ YOUR RESPONSE:
 )
 EXPLAIN_FILE_PROMPT = ChatPromptTemplate.from_messages(
     [
+        SystemMessagePromptTemplate.from_template("{file_list}"),  # TODO is this needed ?
         SystemMessagePromptTemplate.from_template("Here is the content of `{file_path}`:"),
         HumanMessagePromptTemplate.from_template("{file_content}"),
         SystemMessagePromptTemplate.from_template("Please explain this content in plain English."),
+    ]
+)
+GENERATE_FILE_OUTLINE_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template(
+            """\
+You are a chatbot that generates code outlines and lists dependencies for source code files of a repository.
+
+The name of the repository name is `{repo_name}`. This repository contains the following files:\
+"""
+        ),
+        HumanMessagePromptTemplate.from_template("{repo_file_list}"),
+        SystemMessagePromptTemplate.from_template("Here is the content of `{file_path}`:"),
+        HumanMessagePromptTemplate.from_template("{file_content}"),
+        SystemMessagePromptTemplate.from_template(
+            """\
+Please outline all the concepts found in this file and also list all the files this file depends on.\
+"""
+        ),
     ]
 )
 REWOO_PLANNER_PROMPT = ChatPromptTemplate.from_messages(
@@ -190,9 +210,9 @@ async def read_file_bot(context: SingleTurnContext) -> None:
 
 
 @bot_merger.create_bot(
-    "CodeOutlineGeneratorBot",
+    "CodeExplainerBot",
     description=(
-        "Displays the outline of a code file from the repository. Input should be a file path. Does not accept "
+        "Explains the code in a repository file. Input should be a file path. Does not accept "
         "file paths that are not present in the list of files above."
     ),
 )
@@ -218,6 +238,41 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
 
 
 @bot_merger.create_bot(
+    "CodeOutlineGeneratorBot",
+    description=(
+        "Displays the outline of a source code file from the repository. Input should be a file path. Does not accept "
+        "file paths that are not present in the list of files above."
+    ),
+)
+async def generate_file_outline(context: SingleTurnContext) -> None:
+    repo_dir = Path((await repo_path_bot.bot.get_final_response()).content)
+    file_path_msg = await get_file_path_bot.bot.get_final_response(context.concluding_request)
+    repo_file_list = "\n".join((await list_repo_bot.bot.get_final_response()).extra_fields["file_list"])
+
+    # TODO use the future `InquiryBot` to report this interim result ? and move it to the `get_file_path_bot` ?
+    await context.yield_interim_response(file_path_msg)
+
+    file_content_msg = await read_file_bot.bot.get_final_response(file_path_msg.content)
+
+    chat_llm = PromptLayerChatOpenAI(
+        model_name=SLOW_GPT_MODEL,
+        temperature=0.0,
+        pl_tags=["generate_outline_bot"],
+    )
+    llm_chain = LLMChain(
+        llm=chat_llm,
+        prompt=GENERATE_FILE_OUTLINE_PROMPT,
+    )
+    file_explanation = await llm_chain.arun(
+        repo_name=repo_dir.name,
+        repo_file_list=repo_file_list,
+        file_path=file_path_msg.content,
+        file_content=file_content_msg.content,
+    )
+    await context.yield_final_response(file_explanation)
+
+
+@bot_merger.create_bot(
     "ConceptExplorerBot",
     description=(
         "A complex bot that is an exact copy of yourself. Capable of generating and carrying out elaborate plans "
@@ -239,6 +294,7 @@ async def rewoo(context: SingleTurnContext) -> None:
     )
     rewoo_tools = (
         explain_file_bot.bot,
+        generate_file_outline.bot,
         read_file_bot.bot,
         rewoo.bot,
         simpler_llm.bot,
@@ -281,4 +337,4 @@ async def simpler_llm(context: SingleTurnContext) -> None:
     await context.yield_final_response(json.loads(result.generations[0][0].text))
 
 
-main_bot = rewoo.bot
+main_bot = generate_file_outline.bot
