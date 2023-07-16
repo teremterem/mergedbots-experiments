@@ -12,6 +12,8 @@ def list_botmerger_files() -> list[str]:
             "botmerger/__init__.py\n"
             "botmerger/experimental/inquiry_bot.py\n"
             "botmerger/ext/discord_integration.py\n"
+            "botmerger/errors.py\n"
+            "botmerger/utils.py\n"
             "README.md\n"
             "LICENSE\n"
             "pyproject.toml\n"
