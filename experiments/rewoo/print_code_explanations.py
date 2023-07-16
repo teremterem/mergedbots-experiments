@@ -9,24 +9,22 @@ sys.path.append(str(Path(__file__).parents[2]))
 
 from experiments.rewoo.rewoo_utils import list_botmerger_files, BOTMERGER_REPO_PATH
 
-BOTMERGER_OUTLINES_PATH = Path(f"{BOTMERGER_REPO_PATH.as_posix()}.inspection") / "outlines"
+BOTMERGER_EXPLANATIONS_PATH = Path(f"{BOTMERGER_REPO_PATH.as_posix()}.inspection") / "explanations"
 
 
-def get_botmerger_outlines() -> list[str]:
+def get_botmerger_explanations() -> list[str]:
     result = [
-        (BOTMERGER_OUTLINES_PATH / f"{file}.txt").read_text(encoding="utf-8")
-        for file in list_botmerger_files()
-        if file.lower().endswith(".py")
+        (BOTMERGER_EXPLANATIONS_PATH / f"{file}.txt").read_text(encoding="utf-8") for file in list_botmerger_files()
     ]
     return result
 
 
 def main() -> None:
-    for outline in get_botmerger_outlines():
+    for explanation in get_botmerger_explanations():
         print()
         print()
         print()
-        print(outline)
+        print(explanation)
     print()
     print()
     print()
