@@ -31,7 +31,7 @@ async def main() -> None:
         responses = await explain_file_over_whole_repo.bot.trigger(file)
         tasks.append(asyncio.create_task(save_the_explanation(file, responses)))
 
-    await asyncio.gather(*tasks)
+    await asyncio.gather(*tasks, return_exceptions=True)
 
 
 if __name__ == "__main__":

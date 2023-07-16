@@ -260,9 +260,9 @@ async def explain_file_over_whole_repo(context: SingleTurnContext) -> None:
     for another_file_path in list_botmerger_files():
         if another_file_path == file_path:
             continue
-        another_file_content = (await read_file_bot.bot.get_final_response(file_path)).content
+        another_file_content = (await read_file_bot.bot.get_final_response(another_file_path)).content
         other_file_contents.append(f"======= FILE: {another_file_path} =======\n\n{another_file_content}")
-    other_file_contents_str = "\n\n\n\n".join(other_file_contents)
+    other_file_contents_str = "\n\n\n".join(other_file_contents)
 
     file_content = (await read_file_bot.bot.get_final_response(file_path)).content
 
