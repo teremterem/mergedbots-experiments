@@ -45,6 +45,17 @@ EXPLAIN_FILE_PROMPT = ChatPromptTemplate.from_messages(
         SystemMessagePromptTemplate.from_template("Please explain this content in plain English."),
     ]
 )
+EXPLAIN_FILE_OVER_WHOLE_REPO_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template("Here are contents of all the files in `{repo_name}` repo."),
+        HumanMessagePromptTemplate.from_template("{other_file_contents}"),
+        SystemMessagePromptTemplate.from_template(
+            "And here is the content of `{file_path}`, the file that you need to explain."
+        ),
+        HumanMessagePromptTemplate.from_template("{file_content}"),
+        SystemMessagePromptTemplate.from_template("Please explain the content of `{file_path}` in plain English."),
+    ]
+)
 GENERATE_FILE_OUTLINE_PROMPT = ChatPromptTemplate.from_messages(
     [
         SystemMessagePromptTemplate.from_template(
@@ -238,25 +249,38 @@ async def explain_file_bot(context: SingleTurnContext) -> None:
     await context.yield_final_response(file_explanation)
 
 
-@bot_merger.create_bot("CodeExplainerOverFullRepo")
-async def explain_file_over_full_repo(context: SingleTurnContext) -> None:
-    file_path_msg = await get_file_path_bot.bot.get_final_response(context.concluding_request)
+@bot_merger.create_bot("CodeExplainerOverWholeRepo")
+async def explain_file_over_whole_repo(context: SingleTurnContext) -> None:
+    file_path = (await get_file_path_bot.bot.get_final_response(context.concluding_request)).content
 
     # TODO use the future `InquiryBot` to report this interim result ? and move it to the `get_file_path_bot` ?
-    await context.yield_interim_response(file_path_msg)
+    await context.yield_interim_response(file_path)
 
-    file_content_msg = await read_file_bot.bot.get_final_response(file_path_msg.content)
+    other_file_contents = []
+    for another_file_path in list_botmerger_files():
+        if another_file_path == file_path:
+            continue
+        another_file_content = (await read_file_bot.bot.get_final_response(file_path)).content
+        other_file_contents.append(f"======= FILE: {another_file_path} =======\n\n{another_file_content}")
+    other_file_contents_str = "\n\n\n\n".join(other_file_contents)
+
+    file_content = (await read_file_bot.bot.get_final_response(file_path)).content
 
     chat_llm = PromptLayerChatOpenAI(
         model_name=SLOW_GPT_MODEL,
         temperature=0.0,
-        pl_tags=["explain_file_bot"],
+        pl_tags=["explain_file_over_repo"],
     )
     llm_chain = LLMChain(
         llm=chat_llm,
-        prompt=EXPLAIN_FILE_PROMPT,
+        prompt=EXPLAIN_FILE_OVER_WHOLE_REPO_PROMPT,
     )
-    file_explanation = await llm_chain.arun(file_path=file_path_msg.content, file_content=file_content_msg.content)
+    file_explanation = await llm_chain.arun(
+        repo_name=BOTMERGER_REPO_PATH.name,
+        other_file_contents=other_file_contents_str,
+        file_path=file_path,
+        file_content=file_content,
+    )
     await context.yield_final_response(file_explanation)
 
 
