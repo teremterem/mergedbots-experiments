@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 sys.path.append(str(Path(__file__).parents[2]))
 
-from experiments.rewoo.print_code_explanations_over_whole_repo import BOTMERGER_EXPLANATIONS_ON_REPO_PATH
+from experiments.rewoo.print_code_explanations import BOTMERGER_EXPLANATIONS_ON_REPO_PATH
 from experiments.rewoo.rewoo import explain_file_over_whole_repo
 from experiments.rewoo.rewoo_utils import list_botmerger_files
 
